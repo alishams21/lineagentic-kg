@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "version": "1.0",
-    "description": "Example records based on enhanced_registry.yaml",
+    "version": "2.0",
+    "description": "Example records demonstrating independent ingestion capabilities",
     "generated_at": "2024-01-01T00:00:00Z"
   },
   "records": [
@@ -15,7 +15,6 @@
       },
       "aspects": {
         "datasetProperties": {
-          "type": "versioned",
           "description": "Customer information dataset containing user profiles and preferences",
           "customProperties": {
             "retention_days": 365,
@@ -26,7 +25,6 @@
           "externalUrl": "https://datahub.company.com/datasets/customers"
         },
         "schemaMetadata": {
-          "type": "versioned",
           "schemaName": "customers_schema",
           "platform": "mysql",
           "version": "1.0",
@@ -66,7 +64,6 @@
           "foreignKeys": []
         },
         "ownership": {
-          "type": "versioned",
           "owners": [
             {
               "owner": "urn:li:corpuser:john.doe",
@@ -85,7 +82,6 @@
           }
         },
         "globalTags": {
-          "type": "versioned",
           "tags": [
             {
               "tag": "urn:li:tag:domain=customer",
@@ -98,7 +94,6 @@
           ]
         },
         "datasetProfile": {
-          "type": "timeseries",
           "rowCount": 1000000,
           "columnCount": 5,
           "sizeInBytes": 52428800,
@@ -164,13 +159,10 @@
       "key": {
         "platform": "airflow",
         "flow_id": "customer_etl_pipeline",
-        "namespace": "customer_analytics",
-        "name": "Customer ETL Pipeline",
         "env": "PROD"
       },
       "aspects": {
         "dataFlowInfo": {
-          "type": "versioned",
           "name": "Customer ETL Pipeline",
           "namespace": "customer_analytics",
           "description": "Extract, transform, and load customer data from source systems",
@@ -204,7 +196,6 @@
       },
       "aspects": {
         "dataJobInfo": {
-          "type": "versioned",
           "name": "extract_customers",
           "namespace": "customer_analytics",
           "versionId": "1.0",
@@ -214,13 +205,11 @@
           "description": "Extract customer data from source MySQL database"
         },
         "documentation": {
-          "type": "versioned",
           "description": "Extracts customer data from source systems",
           "contentType": "text/markdown",
           "content": "# Customer Extract Job\n\nThis job extracts customer data from the source MySQL database..."
         },
         "sourceCodeLocation": {
-          "type": "versioned",
           "type": "GITHUB",
           "url": "https://github.com/company/data-pipelines",
           "repo": "data-pipelines",
@@ -228,13 +217,11 @@
           "path": "jobs/customer_etl/extract_customers.py"
         },
         "sourceCode": {
-          "type": "versioned",
           "language": "python",
           "snippet": "def extract_customers():\n    # Extract customer data\n    query = 'SELECT * FROM customers'\n    return execute_query(query)",
           "fullCode": "import pandas as pd\nfrom sqlalchemy import create_engine\n\ndef extract_customers():\n    engine = create_engine('mysql://user:pass@host/db')\n    query = 'SELECT * FROM customers'\n    df = pd.read_sql(query, engine)\n    return df"
         },
         "environmentProperties": {
-          "type": "versioned",
           "env": "PROD",
           "config": {
             "database_url": "mysql://prod_user:prod_pass@prod_host/prod_db",
@@ -243,7 +230,6 @@
           }
         },
         "ownership": {
-          "type": "versioned",
           "owners": [
             {
               "owner": "urn:li:corpuser:jane.smith",
@@ -257,7 +243,6 @@
           }
         },
         "dataJobInputOutput": {
-          "type": "versioned",
           "inputs": [
             "urn:li:dataset:(mysql,source_customers,PROD)"
           ],
@@ -266,7 +251,6 @@
           ]
         },
         "dataJobRun": {
-          "type": "timeseries",
           "eventType": "START",
           "runId": "run_12345",
           "parent": "urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD)",
@@ -304,7 +288,6 @@
       },
       "aspects": {
         "corpUserInfo": {
-          "type": "versioned",
           "active": true,
           "displayName": "John Doe",
           "email": "john.doe@company.com",
@@ -314,7 +297,6 @@
           "skills": ["Python", "SQL", "Airflow", "Neo4j"]
         },
         "ownership": {
-          "type": "versioned",
           "owners": [
             {
               "owner": "urn:li:corpuser:john.doe",
@@ -355,14 +337,12 @@
       },
       "aspects": {
         "corpGroupInfo": {
-          "type": "versioned",
           "name": "Data Engineering",
           "description": "Data Engineering team responsible for data pipelines and infrastructure",
           "email": "data-engineering@company.com",
           "slackChannel": "#data-engineering"
         },
         "ownership": {
-          "type": "versioned",
           "owners": [
             {
               "owner": "urn:li:corpGroup:data_engineering",
@@ -436,14 +416,12 @@
       },
       "aspects": {
         "columnProperties": {
-          "type": "versioned",
           "description": "Unique customer identifier",
           "dataType": "INTEGER",
           "nullable": false,
           "defaultValue": null
         },
         "transformation": {
-          "type": "versioned",
           "inputColumns": ["urn:li:dataset:(mysql,source_customers,PROD)#id"],
           "steps": [
             {
@@ -483,14 +461,12 @@
       },
       "aspects": {
         "columnProperties": {
-          "type": "versioned",
           "description": "Customer email address",
           "dataType": "VARCHAR(100)",
           "nullable": false,
           "defaultValue": null
         },
         "transformation": {
-          "type": "versioned",
           "inputColumns": ["urn:li:dataset:(mysql,source_customers,PROD)#email"],
           "steps": [
             {

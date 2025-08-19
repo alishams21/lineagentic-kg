@@ -70,6 +70,12 @@ aspects:
     required: ["active", "displayName", "email"]
     defaults:
       active: true
+    # Entity creation parameters for independent ingestion
+    entity_creation:
+      entity_type: "CorpUser"
+      urn_generator: "corpUser"
+      required_params: ["username"]
+      optional_params: []
   
   corpGroupInfo:
     type: versioned
@@ -79,6 +85,11 @@ aspects:
       - email
       - slackChannel
     required: ["name"]
+    entity_creation:
+      entity_type: "CorpGroup"
+      urn_generator: "corpGroup"
+      required_params: ["name"]
+      optional_params: []
   
   datasetProperties:
     type: versioned
@@ -88,6 +99,11 @@ aspects:
       - tags
       - externalUrl
     required: ["description"]
+    entity_creation:
+      entity_type: "Dataset"
+      urn_generator: "dataset"
+      required_params: ["platform", "name"]
+      optional_params: ["env"]
   
   schemaMetadata:
     type: versioned
@@ -99,6 +115,11 @@ aspects:
       - primaryKeys
       - foreignKeys
     required: ["schemaName", "platform", "fields"]
+    entity_creation:
+      entity_type: "Dataset"
+      urn_generator: "dataset"
+      required_params: ["platform", "name"]
+      optional_params: ["env"]
   
   ownership:
     type: versioned
@@ -106,12 +127,26 @@ aspects:
       - owners
       - lastModified
     required: ["owners"]
+    # Ownership can be attached to multiple entity types
+    # Entity creation will be determined by the context where it's used
+    entity_creation:
+      entity_type: "Dataset"  # Default to Dataset, but can be overridden
+      urn_generator: "dataset"
+      required_params: ["platform", "name"]
+      optional_params: ["env"]
   
   globalTags:
     type: versioned
     properties:
       - tags
     required: ["tags"]
+    # Global tags can be attached to multiple entity types
+    # Entity creation will be determined by the context where it's used
+    entity_creation:
+      entity_type: "Dataset"  # Default to Dataset, but can be overridden
+      urn_generator: "dataset"
+      required_params: ["platform", "name"]
+      optional_params: ["env"]
   
   datasetProfile:
     type: timeseries
@@ -122,6 +157,11 @@ aspects:
       - lastModified
       - partitionCount
     required: ["rowCount", "columnCount"]
+    entity_creation:
+      entity_type: "Dataset"
+      urn_generator: "dataset"
+      required_params: ["platform", "name"]
+      optional_params: ["env"]
   
   dataFlowInfo:
     type: versioned
@@ -131,6 +171,11 @@ aspects:
       - description
       - version
     required: ["name", "namespace"]
+    entity_creation:
+      entity_type: "DataFlow"
+      urn_generator: "dataFlow"
+      required_params: ["platform", "flow_id"]
+      optional_params: ["env"]
   
   dataJobInfo:
     type: versioned
@@ -143,6 +188,11 @@ aspects:
       - jobType
       - description
     required: ["name", "namespace"]
+    entity_creation:
+      entity_type: "DataJob"
+      urn_generator: "dataJob"
+      required_params: ["flow_urn", "job_name"]
+      optional_params: []
   
   documentation:
     type: versioned
@@ -151,6 +201,12 @@ aspects:
       - contentType
       - content
     required: ["description"]
+    # Documentation is typically attached to DataJob entities
+    entity_creation:
+      entity_type: "DataJob"
+      urn_generator: "dataJob"
+      required_params: ["flow_urn", "job_name"]
+      optional_params: []
   
   sourceCodeLocation:
     type: versioned
@@ -161,6 +217,12 @@ aspects:
       - branch
       - path
     required: ["type", "url"]
+    # Source code location is typically attached to DataJob entities
+    entity_creation:
+      entity_type: "DataJob"
+      urn_generator: "dataJob"
+      required_params: ["flow_urn", "job_name"]
+      optional_params: []
   
   sourceCode:
     type: versioned
@@ -169,6 +231,12 @@ aspects:
       - snippet
       - fullCode
     required: ["language"]
+    # Source code is typically attached to DataJob entities
+    entity_creation:
+      entity_type: "DataJob"
+      urn_generator: "dataJob"
+      required_params: ["flow_urn", "job_name"]
+      optional_params: []
   
   environmentProperties:
     type: versioned
@@ -176,6 +244,12 @@ aspects:
       - env
       - config
     required: ["env"]
+    # Environment properties are typically attached to DataJob entities
+    entity_creation:
+      entity_type: "DataJob"
+      urn_generator: "dataJob"
+      required_params: ["flow_urn", "job_name"]
+      optional_params: []
   
   dataJobInputOutput:
     type: versioned
@@ -183,6 +257,12 @@ aspects:
       - inputs
       - outputs
     required: ["inputs", "outputs"]
+    # Data job I/O is typically attached to DataJob entities
+    entity_creation:
+      entity_type: "DataJob"
+      urn_generator: "dataJob"
+      required_params: ["flow_urn", "job_name"]
+      optional_params: []
   
   dataJobRun:
     type: timeseries
@@ -194,6 +274,12 @@ aspects:
       - startTime
       - endTime
     required: ["eventType", "runId"]
+    # Data job runs are typically attached to DataJob entities
+    entity_creation:
+      entity_type: "DataJob"
+      urn_generator: "dataJob"
+      required_params: ["flow_urn", "job_name"]
+      optional_params: []
   
   columnProperties:
     type: versioned
@@ -203,6 +289,11 @@ aspects:
       - nullable
       - defaultValue
     required: ["dataType"]
+    entity_creation:
+      entity_type: "Column"
+      urn_generator: "column"
+      required_params: ["dataset_urn", "field_path"]
+      optional_params: []
   
   transformation:
     type: versioned
@@ -217,7 +308,11 @@ aspects:
     defaults:
       sourceDataset: null
       targetDataset: null
-
+    entity_creation:
+      entity_type: "Column"
+      urn_generator: "column"
+      required_params: ["dataset_urn", "field_path"]
+      optional_params: []
 
 # Entity Definitions
 entities:
@@ -239,22 +334,78 @@ entities:
       - type: HAS_COLUMN
         target: Column
         direction: outgoing
+        # Relationship creation parameters for independent ingestion
+        entity_creation:
+          source_entity:
+            entity_type: "Dataset"
+            urn_generator: "dataset"
+            required_params: ["platform", "name"]
+            optional_params: ["env"]
+          target_entity:
+            entity_type: "Column"
+            urn_generator: "column"
+            required_params: ["dataset_urn", "field_path"]
+            optional_params: []
       - type: TAGGED
         target: Tag
         direction: outgoing
         properties: ["source"]
+        entity_creation:
+          source_entity:
+            entity_type: "Dataset"
+            urn_generator: "dataset"
+            required_params: ["platform", "name"]
+            optional_params: ["env"]
+          target_entity:
+            entity_type: "Tag"
+            urn_generator: "tag"
+            required_params: ["key"]
+            optional_params: ["value"]
       - type: UPSTREAM_OF
         target: Dataset
         direction: outgoing
         properties: ["via"]
+        entity_creation:
+          source_entity:
+            entity_type: "Dataset"
+            urn_generator: "dataset"
+            required_params: ["platform", "name"]
+            optional_params: ["env"]
+          target_entity:
+            entity_type: "Dataset"
+            urn_generator: "dataset"
+            required_params: ["platform", "name"]
+            optional_params: ["env"]
       - type: OWNS
         target: CorpUser
         direction: incoming
         properties: ["via"]
+        entity_creation:
+          source_entity:
+            entity_type: "CorpUser"
+            urn_generator: "corpUser"
+            required_params: ["username"]
+            optional_params: []
+          target_entity:
+            entity_type: "Dataset"
+            urn_generator: "dataset"
+            required_params: ["platform", "name"]
+            optional_params: ["env"]
       - type: OWNS
         target: CorpGroup
         direction: incoming
         properties: ["via"]
+        entity_creation:
+          source_entity:
+            entity_type: "CorpGroup"
+            urn_generator: "corpGroup"
+            required_params: ["name"]
+            optional_params: []
+          target_entity:
+            entity_type: "Dataset"
+            urn_generator: "dataset"
+            required_params: ["platform", "name"]
+            optional_params: ["env"]
 
   DataFlow:
     key: dataFlowKey
@@ -271,6 +422,17 @@ entities:
       - type: HAS_JOB
         target: DataJob
         direction: outgoing
+        entity_creation:
+          source_entity:
+            entity_type: "DataFlow"
+            urn_generator: "dataFlow"
+            required_params: ["platform", "flow_id"]
+            optional_params: ["env"]
+          target_entity:
+            entity_type: "DataJob"
+            urn_generator: "dataJob"
+            required_params: ["flow_urn", "job_name"]
+            optional_params: []
 
   DataJob:
     key: dataJobKey
@@ -291,17 +453,61 @@ entities:
       - type: CONSUMES
         target: Dataset
         direction: outgoing
+        entity_creation:
+          source_entity:
+            entity_type: "DataJob"
+            urn_generator: "dataJob"
+            required_params: ["flow_urn", "job_name"]
+            optional_params: []
+          target_entity:
+            entity_type: "Dataset"
+            urn_generator: "dataset"
+            required_params: ["platform", "name"]
+            optional_params: ["env"]
       - type: PRODUCES
         target: Dataset
         direction: outgoing
+        entity_creation:
+          source_entity:
+            entity_type: "DataJob"
+            urn_generator: "dataJob"
+            required_params: ["flow_urn", "job_name"]
+            optional_params: []
+          target_entity:
+            entity_type: "Dataset"
+            urn_generator: "dataset"
+            required_params: ["platform", "name"]
+            optional_params: ["env"]
       - type: OWNS
         target: CorpUser
         direction: incoming
         properties: ["via"]
+        entity_creation:
+          source_entity:
+            entity_type: "CorpUser"
+            urn_generator: "corpUser"
+            required_params: ["username"]
+            optional_params: []
+          target_entity:
+            entity_type: "DataJob"
+            urn_generator: "dataJob"
+            required_params: ["flow_urn", "job_name"]
+            optional_params: []
       - type: OWNS
         target: CorpGroup
         direction: incoming
         properties: ["via"]
+        entity_creation:
+          source_entity:
+            entity_type: "CorpGroup"
+            urn_generator: "corpGroup"
+            required_params: ["name"]
+            optional_params: []
+          target_entity:
+            entity_type: "DataJob"
+            urn_generator: "dataJob"
+            required_params: ["flow_urn", "job_name"]
+            optional_params: []
 
   CorpUser:
     key: corpUserKey
@@ -316,10 +522,32 @@ entities:
         target: Dataset
         direction: outgoing
         properties: ["via"]
+        entity_creation:
+          source_entity:
+            entity_type: "CorpUser"
+            urn_generator: "corpUser"
+            required_params: ["username"]
+            optional_params: []
+          target_entity:
+            entity_type: "Dataset"
+            urn_generator: "dataset"
+            required_params: ["platform", "name"]
+            optional_params: ["env"]
       - type: OWNS
         target: DataJob
         direction: outgoing
         properties: ["via"]
+        entity_creation:
+          source_entity:
+            entity_type: "CorpUser"
+            urn_generator: "corpUser"
+            required_params: ["username"]
+            optional_params: []
+          target_entity:
+            entity_type: "DataJob"
+            urn_generator: "dataJob"
+            required_params: ["flow_urn", "job_name"]
+            optional_params: []
 
   CorpGroup:
     key: corpGroupKey
@@ -334,10 +562,32 @@ entities:
         target: Dataset
         direction: outgoing
         properties: ["via"]
+        entity_creation:
+          source_entity:
+            entity_type: "CorpGroup"
+            urn_generator: "corpGroup"
+            required_params: ["name"]
+            optional_params: []
+          target_entity:
+            entity_type: "Dataset"
+            urn_generator: "dataset"
+            required_params: ["platform", "name"]
+            optional_params: ["env"]
       - type: OWNS
         target: DataJob
         direction: outgoing
         properties: ["via"]
+        entity_creation:
+          source_entity:
+            entity_type: "CorpGroup"
+            urn_generator: "corpGroup"
+            required_params: ["name"]
+            optional_params: []
+          target_entity:
+            entity_type: "DataJob"
+            urn_generator: "dataJob"
+            required_params: ["flow_urn", "job_name"]
+            optional_params: []
 
   Tag:
     key: tagKey
@@ -350,6 +600,17 @@ entities:
       - type: TAGGED
         target: Dataset
         direction: incoming
+        entity_creation:
+          source_entity:
+            entity_type: "Tag"
+            urn_generator: "tag"
+            required_params: ["key"]
+            optional_params: ["value"]
+          target_entity:
+            entity_type: "Dataset"
+            urn_generator: "dataset"
+            required_params: ["platform", "name"]
+            optional_params: ["env"]
 
   Column:
     key: columnKey
@@ -365,6 +626,17 @@ entities:
         target: Column
         direction: outgoing
         properties: ["type", "subtype", "description", "transformation", "source_dataset", "target_dataset"]
+        entity_creation:
+          source_entity:
+            entity_type: "Column"
+            urn_generator: "column"
+            required_params: ["dataset_urn", "field_path"]
+            optional_params: []
+          target_entity:
+            entity_type: "Column"
+            urn_generator: "column"
+            required_params: ["dataset_urn", "field_path"]
+            optional_params: []
 
 # Aspect Types
 aspect_types:

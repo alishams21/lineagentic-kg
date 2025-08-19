@@ -212,6 +212,7 @@ class RegistryFactory:
                         target = rel['target']
                         direction = rel.get('direction', 'outgoing')
                         properties = rel.get('properties', [])
+                        entity_creation = rel.get('entity_creation')
                         
                         # Create a unique method name for each relationship
                         method_name = f"create_{rel_type.lower()}_relationship"
@@ -221,8 +222,19 @@ class RegistryFactory:
                             # If method exists, create a more specific name
                             method_name = f"create_{rel_type.lower()}_{entity_name.lower()}_to_{target.lower()}_relationship"
                         
-                        def create_rel_method(rel_type, entity_name, target, direction, properties, method_name):
-                            def rel_method(from_urn: str, to_urn: str, props: Dict[str, Any]|None=None):
+                        def create_rel_method(rel_type, entity_name, target, direction, properties, method_name, entity_creation):
+                            def rel_method(from_urn: str = None, to_urn: str = None, props: Dict[str, Any]|None=None, **entity_params):
+                                # If URNs are not provided but entity_creation is defined, create entities first
+                                if from_urn is None and entity_creation and 'source_entity' in entity_creation:
+                                    from_urn = self._create_entity_if_needed(entity_creation['source_entity'], entity_params)
+                                elif from_urn is None:
+                                    raise ValueError(f"from_urn is required for relationship {rel_type}")
+                                
+                                if to_urn is None and entity_creation and 'target_entity' in entity_creation:
+                                    to_urn = self._create_entity_if_needed(entity_creation['target_entity'], entity_params)
+                                elif to_urn is None:
+                                    raise ValueError(f"to_urn is required for relationship {rel_type}")
+                                
                                 # Filter properties to only include those defined in registry
                                 if props:
                                     filtered_props = {k: v for k, v in props.items() if k in properties}
@@ -235,25 +247,40 @@ class RegistryFactory:
                                     self._create_relationship_generic(target, to_urn, rel_type, entity_name, from_urn, filtered_props)
                             return rel_method
                         
-                        setattr(self, method_name, create_rel_method(rel_type, entity_name, target, direction, properties, method_name))
+                        setattr(self, method_name, create_rel_method(rel_type, entity_name, target, direction, properties, method_name, entity_creation))
             
             def _generate_aspect_methods(self):
                 """Generate aspect-specific methods from registry"""
                 for aspect_name, aspect_def in self.registry.get('aspects', {}).items():
                     aspect_type = aspect_def['type']
+                    entity_creation = aspect_def.get('entity_creation')
                     
-                    # Generate upsert method
-                    def create_upsert_aspect_method(aspect_name, aspect_type):
+                    # Generate upsert method with independent ingestion support
+                    def create_upsert_aspect_method(aspect_name, aspect_type, entity_creation):
                         if aspect_type == 'versioned':
-                            def aspect_method(entity_label: str, entity_urn: str, payload: Dict[str, Any], version: int|None=None) -> int:
+                            def aspect_method(entity_label: str = None, entity_urn: str = None, payload: Dict[str, Any] = None, version: int|None=None, **entity_params) -> int:
+                                # If entity_urn is not provided but entity_creation is defined, create entity first
+                                if entity_urn is None and entity_creation:
+                                    entity_urn = self._create_entity_if_needed(entity_creation, entity_params)
+                                    entity_label = entity_creation['entity_type']
+                                elif entity_urn is None:
+                                    raise ValueError(f"entity_urn is required for aspect {aspect_name}")
+                                
                                 return self._upsert_versioned_aspect_generic(entity_label, entity_urn, aspect_name, payload, version)
                         else:  # timeseries
-                            def aspect_method(entity_label: str, entity_urn: str, payload: Dict[str, Any], timestamp_ms: int|None=None) -> None:
+                            def aspect_method(entity_label: str = None, entity_urn: str = None, payload: Dict[str, Any] = None, timestamp_ms: int|None=None, **entity_params) -> None:
+                                # If entity_urn is not provided but entity_creation is defined, create entity first
+                                if entity_urn is None and entity_creation:
+                                    entity_urn = self._create_entity_if_needed(entity_creation, entity_params)
+                                    entity_label = entity_creation['entity_type']
+                                elif entity_urn is None:
+                                    raise ValueError(f"entity_urn is required for aspect {aspect_name}")
+                                
                                 self._append_timeseries_aspect_generic(entity_label, entity_urn, aspect_name, payload, timestamp_ms)
                         return aspect_method
                     
                     method_name = f"upsert_{aspect_name.lower()}_aspect"
-                    setattr(self, method_name, create_upsert_aspect_method(aspect_name, aspect_type))
+                    setattr(self, method_name, create_upsert_aspect_method(aspect_name, aspect_type, entity_creation))
                     
                     # Generate get method
                     def create_get_aspect_method(aspect_name, aspect_type):
@@ -469,6 +496,34 @@ class RegistryFactory:
                         """,
                         urn=entity_urn, an=aspect_name
                     )
+            
+            def _create_entity_if_needed(self, entity_creation: Dict[str, Any], entity_params: Dict[str, Any]) -> str:
+                """Create entity if it doesn't exist and return its URN"""
+                entity_type = entity_creation['entity_type']
+                urn_generator_name = entity_creation['urn_generator']
+                required_params = entity_creation['required_params']
+                optional_params = entity_creation.get('optional_params', [])
+                
+                # Validate required parameters
+                missing_params = [param for param in required_params if param not in entity_params]
+                if missing_params:
+                    raise ValueError(f"Missing required parameters for {entity_type}: {missing_params}")
+                
+                # Extract parameters for URN generation
+                urn_params = {}
+                for param in required_params + optional_params:
+                    if param in entity_params:
+                        urn_params[param] = entity_params[param]
+                
+                # Generate URN
+                urn_generator = self.urn_generators[urn_generator_name]
+                entity_urn = urn_generator(**urn_params)
+                
+                # Create entity if it doesn't exist
+                entity_props = {k: v for k, v in entity_params.items() if v is not None}
+                self._upsert_entity_generic(entity_type, entity_urn, entity_props)
+                
+                return entity_urn
         
         return DynamicNeo4jMetadataWriter
     
@@ -512,9 +567,20 @@ def main():
         print("\n📋 Generated Entity Methods:")
         print("   Entity CRUD Operations:")
         for entity_name in factory.registry['entities'].keys():
-            print(f"     ✅ writer.upsert_{entity_name.lower()}(**kwargs)")
-            print(f"     ✅ writer.get_{entity_name.lower()}(urn)")
-            print(f"     ✅ writer.delete_{entity_name.lower()}(urn)")
+            entity_def = factory.registry['entities'][entity_name]
+            properties = entity_def.get('properties', [])
+            urn_generator = entity_def.get('urn_generator')
+            
+            # Get URN generator parameters
+            urn_params = []
+            if urn_generator and urn_generator in factory.registry['urn_patterns']:
+                urn_params = factory.registry['urn_patterns'][urn_generator].get('parameters', [])
+            
+            # Show upsert method with actual parameters
+            param_str = ", ".join(urn_params) if urn_params else "**kwargs"
+            print(f"     ✅ writer.upsert_{entity_name.lower()}({param_str})")
+            print(f"     ✅ writer.get_{entity_name.lower()}(urn: str)")
+            print(f"     ✅ writer.delete_{entity_name.lower()}(urn: str)")
         
         print("\n📋 Generated Relationship Methods:")
         print("   Relationship Creation:")
@@ -522,21 +588,75 @@ def main():
             for rel in entity_def.get('relationships', []):
                 rel_type = rel['type']
                 target = rel['target']
-                method_name = f"create_{rel_type.lower()}_relationship"
+                direction = rel.get('direction', 'outgoing')
+                properties = rel.get('properties', [])
+                entity_creation = rel.get('entity_creation')
                 
-                # Check if method already exists (for relationships with same type but different entities)
+                # Create method name
+                method_name = f"create_{rel_type.lower()}_relationship"
                 if hasattr(writer, method_name):
                     method_name = f"create_{rel_type.lower()}_{entity_name.lower()}_to_{target.lower()}_relationship"
                 
-                print(f"     ✅ writer.{method_name}(from_urn, to_urn, props=None)")
+                # Show parameters based on entity creation configuration
+                if entity_creation:
+                    source_params = []
+                    target_params = []
+                    
+                    if 'source_entity' in entity_creation:
+                        source_params = entity_creation['source_entity'].get('required_params', [])
+                    if 'target_entity' in entity_creation:
+                        target_params = entity_creation['target_entity'].get('required_params', [])
+                    
+                    # Combine parameters for independent ingestion
+                    all_params = list(set(source_params + target_params))
+                    param_str = ", ".join([f"{p}=None" for p in all_params])
+                    if properties:
+                        param_str += f", props: Dict[str, Any] = None"
+                    
+                    print(f"     ✅ writer.{method_name}({param_str})  # Independent ingestion")
+                else:
+                    # Traditional parameters
+                    param_str = "from_urn: str, to_urn: str"
+                    if properties:
+                        param_str += ", props: Dict[str, Any] = None"
+                    print(f"     ✅ writer.{method_name}({param_str})  # Traditional")
         
         print("\n📋 Generated Aspect Methods:")
         print("   Aspect CRUD Operations:")
         for aspect_name, aspect_def in factory.registry['aspects'].items():
             aspect_type = aspect_def['type']
-            print(f"     ✅ writer.upsert_{aspect_name.lower()}_aspect(entity_label, entity_urn, payload, version=None)")
-            print(f"     ✅ writer.get_{aspect_name.lower()}_aspect(entity_label, entity_urn)")
-            print(f"     ✅ writer.delete_{aspect_name.lower()}_aspect(entity_label, entity_urn)")
+            entity_creation = aspect_def.get('entity_creation')
+            
+            # Show parameters based on entity creation configuration
+            if entity_creation:
+                required_params = entity_creation.get('required_params', [])
+                optional_params = entity_creation.get('optional_params', [])
+                all_params = required_params + optional_params
+                
+                param_str = "payload: Dict[str, Any]"
+                if all_params:
+                    param_str += ", " + ", ".join([f"{p}=None" for p in all_params])
+                if aspect_type == 'versioned':
+                    param_str += ", version: int = None"
+                elif aspect_type == 'timeseries':
+                    param_str += ", timestamp_ms: int = None"
+                
+                print(f"     ✅ writer.upsert_{aspect_name.lower()}_aspect({param_str})  # Independent ingestion")
+            else:
+                # Traditional parameters
+                param_str = "entity_label: str, entity_urn: str, payload: Dict[str, Any]"
+                if aspect_type == 'versioned':
+                    param_str += ", version: int = None"
+                elif aspect_type == 'timeseries':
+                    param_str += ", timestamp_ms: int = None"
+                print(f"     ✅ writer.upsert_{aspect_name.lower()}_aspect({param_str})  # Traditional")
+            
+            # Get and delete methods
+            if aspect_type == 'versioned':
+                print(f"     ✅ writer.get_{aspect_name.lower()}_aspect(entity_label: str, entity_urn: str) -> Dict[str, Any]")
+            else:  # timeseries
+                print(f"     ✅ writer.get_{aspect_name.lower()}_aspect(entity_label: str, entity_urn: str, limit: int = 100) -> List[Dict[str, Any]]")
+            print(f"     ✅ writer.delete_{aspect_name.lower()}_aspect(entity_label: str, entity_urn: str)")
         
         print("\n📋 Generated Utility Methods:")
         print("   Utility Functions:")
@@ -552,6 +672,58 @@ def main():
         
         print(f"\n📊 Total Generated Methods: {len(generated_methods)}")
         print("   (All methods are dynamically generated from registry configuration!)")
+        
+        print("\n📋 Usage Examples:")
+        print("   Independent Aspect Ingestion:")
+        print("     ✅ writer.upsert_datasetproperties_aspect(payload=props, platform='mysql', name='dataset')")
+        print("     ✅ writer.upsert_corpuserinfo_aspect(payload=user_info, username='user@company.com')")
+        print("     ✅ writer.upsert_schemametadata_aspect(payload=schema, platform='mysql', name='dataset')")
+        
+        print("\n   Independent Relationship Creation:")
+        print("     ✅ writer.create_owns_corpuser_to_dataset_relationship(props={'via': 'ownership'}, username='user@company.com', platform='mysql', name='dataset')")
+        print("     ✅ writer.create_upstream_of_relationship(props={'via': 'etl'}, platform='source', name='source_dataset', platform='target', name='target_dataset')")
+        
+        print("\n   Traditional Methods (still supported):")
+        print("     ✅ writer.upsert_datasetproperties_aspect('Dataset', dataset_urn, payload)")
+        print("     ✅ writer.create_owns_corpuser_to_dataset_relationship(user_urn, dataset_urn, props)")
+        
+        print("\n📋 Actual Generated Method Signatures:")
+        print("   (Inspecting the writer object to show real method signatures)")
+        
+        # Show some key method signatures
+        key_methods = [
+            'upsert_dataset',
+            'upsert_corpuser', 
+            'upsert_datasetproperties_aspect',
+            'upsert_corpuserinfo_aspect',
+            'create_owns_corpuser_to_dataset_relationship',
+            'create_upstream_of_relationship'
+        ]
+        
+        for method_name in key_methods:
+            if hasattr(writer, method_name):
+                method = getattr(writer, method_name)
+                import inspect
+                try:
+                    sig = inspect.signature(method)
+                    print(f"     🔧 writer.{method_name}{sig}")
+                except:
+                    print(f"     🔧 writer.{method_name}(...)")
+            else:
+                print(f"     ❌ writer.{method_name} (not found)")
+        
+        print("\n📋 Registry Configuration Summary:")
+        print(f"   • Entities: {len(factory.registry['entities'])}")
+        print(f"   • Aspects: {len(factory.registry['aspects'])}")
+        print(f"   • URN Patterns: {len(factory.registry['urn_patterns'])}")
+        
+        # Count independent ingestion capabilities
+        independent_aspects = sum(1 for aspect in factory.registry['aspects'].values() if aspect.get('entity_creation'))
+        independent_relationships = sum(1 for entity in factory.registry['entities'].values() 
+                                      for rel in entity.get('relationships', []) if rel.get('entity_creation'))
+        
+        print(f"   • Aspects with Independent Ingestion: {independent_aspects}")
+        print(f"   • Relationships with Independent Creation: {independent_relationships}")
         
         
         # ============================================================================
@@ -787,8 +959,8 @@ def main():
         )
         print(f"   ✅ Data job: {datajob_urn}")
         
-        # Add data job info aspect
-        print("\n18. Adding data job info...")
+        # Add data job info aspect (independent ingestion example)
+        print("\n18. Adding data job info (independent ingestion)...")
         job_info_payload = {
             "name": "Customer Data Processing",
             "namespace": "customer_data",
@@ -798,8 +970,28 @@ def main():
             "jobType": "etl",
             "description": "Process customer data from raw to final"
         }
+        # Method 1: Traditional way (requires entity to exist)
         version = writer.upsert_datajobinfo_aspect("DataJob", datajob_urn, job_info_payload)
         print(f"   ✅ Data job info added (version: {version})")
+        
+        # Method 2: Independent ingestion (creates entity if needed)
+        print("\n18b. Adding data job info with independent ingestion...")
+        independent_job_info_payload = {
+            "name": "Independent Data Processing",
+            "namespace": "independent_data",
+            "versionId": "2.0.0",
+            "integration": "spark",
+            "processingType": "streaming",
+            "jobType": "etl",
+            "description": "Independent data processing job"
+        }
+        # This will create the DataJob entity automatically if it doesn't exist
+        version = writer.upsert_datajobinfo_aspect(
+            payload=independent_job_info_payload,
+            flow_urn="urn:li:dataFlow:(airflow,independent_flow,PROD)",
+            job_name="independent_processing"
+        )
+        print(f"   ✅ Independent data job info added (version: {version})")
         
         # Add documentation aspect
         print("\n19. Adding documentation...")
@@ -894,6 +1086,17 @@ def main():
         writer.create_owns_corpgroup_to_dataset_relationship(data_team_urn, raw_dataset_urn, {"via": "team_ownership"})
         print("   ✅ OWNS relationships created")
         
+        # Independent relationship creation example
+        print("\n27b. Creating independent relationships...")
+        # This will create both entities if they don't exist
+        writer.create_owns_corpuser_to_dataset_relationship(
+            props={"via": "independent_ownership"},
+            username="independent.user@company.com",
+            platform="mysql",
+            name="independent_dataset"
+        )
+        print("   ✅ Independent OWNS relationship created")
+        
         # Dataset lineage relationships
         print("\n27. Creating dataset lineage...")
         writer.create_upstream_of_relationship(raw_dataset_urn, staging_dataset_urn, {"via": "etl_job_1"})
@@ -966,9 +1169,108 @@ def main():
         print(f"   📊 Profile data: {profile_data}")
         print(f"   📊 Job run data: {job_run_data}")
         
+        # ============================================================================
+        # INDEPENDENT INGESTION DEMONSTRATION
+        # ============================================================================
+        print("\n" + "="*60)
+        print("INDEPENDENT INGESTION DEMONSTRATION")
+        print("="*60)
+        
+        print("\n35. Independent Aspect Ingestion Examples:")
+        
+        # Independent dataset properties ingestion
+        print("\n35a. Independent dataset properties ingestion...")
+        dataset_props_payload = {
+            "description": "Dataset created via independent aspect ingestion",
+            "customProperties": {"source": "independent_ingestion"},
+            "tags": ["independent", "demo"]
+        }
+        version = writer.upsert_datasetproperties_aspect(
+            payload=dataset_props_payload,
+            platform="postgresql",
+            name="independent_dataset"
+        )
+        print(f"   ✅ Independent dataset properties added (version: {version})")
+        
+        # Independent schema metadata ingestion
+        print("\n35b. Independent schema metadata ingestion...")
+        schema_payload = {
+            "schemaName": "independent_schema",
+            "platform": "postgresql",
+            "version": 1,
+            "fields": [
+                {"fieldPath": "id", "type": "INTEGER", "nullable": False},
+                {"fieldPath": "name", "type": "VARCHAR(100)", "nullable": True}
+            ],
+            "primaryKeys": ["id"]
+        }
+        version = writer.upsert_schemametadata_aspect(
+            payload=schema_payload,
+            platform="postgresql",
+            name="independent_dataset"
+        )
+        print(f"   ✅ Independent schema metadata added (version: {version})")
+        
+        # Independent corpuser info ingestion
+        print("\n35c. Independent corpuser info ingestion...")
+        user_info_payload = {
+            "active": True,
+            "displayName": "Independent User",
+            "email": "independent.user@company.com",
+            "title": "Data Engineer",
+            "department": "Engineering"
+        }
+        version = writer.upsert_corpuserinfo_aspect(
+            payload=user_info_payload,
+            username="independent.user@company.com"
+        )
+        print(f"   ✅ Independent corpuser info added (version: {version})")
+        
+        print("\n36. Independent Relationship Creation Examples:")
+        
+        # Independent ownership relationship
+        print("\n36a. Independent ownership relationship...")
+        writer.create_owns_corpuser_to_dataset_relationship(
+            props={"via": "independent_ownership"},
+            username="independent.user@company.com",
+            platform="postgresql",
+            name="independent_dataset"
+        )
+        print("   ✅ Independent ownership relationship created")
+        
+        # Independent dataset lineage
+        print("\n36b. Independent dataset lineage...")
+        # Create source dataset first
+        source_dataset_urn = writer.upsert_dataset(
+            platform="mysql",
+            name="source_dataset"
+        )
+        # Create relationship with target dataset
+        writer.create_upstream_of_relationship(
+            from_urn=source_dataset_urn,
+            props={"via": "independent_etl"},
+            platform="postgresql",
+            name="target_dataset"
+        )
+        print("   ✅ Independent dataset lineage created")
+        
+        # Independent column relationship
+        print("\n36c. Independent column relationship...")
+        writer.create_has_column_relationship(
+            platform="postgresql",
+            name="independent_dataset",
+            dataset_urn="urn:li:dataset:(postgresql,independent_dataset,PROD)",
+            field_path="id"
+        )
+        print("   ✅ Independent column relationship created")
+        
         print("\n✅ Comprehensive example completed successfully!")
         print("=" * 60)
         print("🎉 All entities, aspects, and relationships from enhanced_registry.yaml demonstrated!")
+        print("\n🚀 NEW FEATURES:")
+        print("   • Independent aspect ingestion: Create entities automatically when ingesting aspects")
+        print("   • Independent relationship creation: Create both source and target entities automatically")
+        print("   • Flexible parameter passing: Support both URN-based and parameter-based ingestion")
         
     except Exception as e:
         print(f"❌ Error: {e}")

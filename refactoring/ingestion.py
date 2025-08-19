@@ -156,7 +156,7 @@ class AutomatedIngestion:
     
     def ingest_aspects(self, record: Dict[str, Any], entity_urn: str):
         """
-        Ingest aspects for an entity.
+        Ingest aspects for an entity using independent ingestion.
         
         Args:
             record: Entity record dictionary
@@ -194,11 +194,18 @@ class AutomatedIngestion:
                     # Get the method
                     method = getattr(self.writer, method_name)
                     
-                    # Call the method
-                    logger.debug(f"Calling {method_name} for {entity_type}: {entity_urn}")
-                    version = method(entity_type, entity_urn, payload)
+                    # Prepare parameters for independent ingestion
+                    # Extract entity creation parameters from the record's key
+                    entity_key = record.get('key', {})
                     
-                    logger.info(f"✅ Added {aspect_name} aspect to {entity_type}: {entity_urn} (version: {version})")
+                    # Call the method with independent ingestion parameters
+                    logger.debug(f"Calling {method_name} with independent ingestion for {entity_type}")
+                    
+                    # Use the new independent ingestion signature
+                    # All aspects now support independent ingestion with entity creation parameters
+                    version = method(payload=payload, **entity_key)
+                    
+                    logger.info(f"✅ Added {aspect_name} aspect to {entity_type} using independent ingestion (version: {version})")
                     self.ingestion_stats['aspects_created'] += 1
                     
                 except Exception as e:
@@ -211,7 +218,7 @@ class AutomatedIngestion:
     
     def ingest_relationships(self, record: Dict[str, Any], entity_urn: str):
         """
-        Ingest relationships for an entity.
+        Ingest relationships for an entity using independent ingestion.
         
         Args:
             record: Entity record dictionary
@@ -254,11 +261,18 @@ class AutomatedIngestion:
                     # Get the method
                     method = getattr(self.writer, method_name)
                     
-                    # Call the method (always outgoing direction as per RegistryFactory pattern)
-                    logger.debug(f"Calling {method_name}: {entity_urn} -> {target_urn}")
-                    method(entity_urn, target_urn, properties)
+                    # Extract entity creation parameters from the record's key
+                    entity_key = record.get('key', {})
                     
-                    logger.info(f"✅ Created {rel_type} relationship: {entity_urn} -> {target_urn}")
+                    # For independent ingestion, we need to provide entity creation parameters
+                    # instead of URNs. The method will create entities if they don't exist.
+                    logger.debug(f"Calling {method_name} with independent ingestion parameters")
+                    
+                    # Call the method with independent ingestion parameters
+                    # The method will create both source and target entities if needed
+                    method(props=properties, **entity_key)
+                    
+                    logger.info(f"✅ Created {rel_type} relationship using independent ingestion")
                     self.ingestion_stats['relationships_created'] += 1
                     
                 except Exception as e:
@@ -271,7 +285,7 @@ class AutomatedIngestion:
     
     def ingest_all_records(self, records_data: Dict[str, Any]):
         """
-        Ingest all records from the loaded data.
+        Ingest all records from the loaded data using independent ingestion.
         
         Args:
             records_data: Dictionary containing records data
@@ -282,35 +296,31 @@ class AutomatedIngestion:
             logger.warning("⚠️ No records found in the data")
             return
         
-        logger.info(f"🚀 Starting ingestion of {len(records)} records...")
+        logger.info(f"🚀 Starting independent ingestion of {len(records)} records...")
         
-        # First pass: Create all entities
-        logger.info("📋 Phase 1: Creating entities...")
-        entity_urns = {}
+        # With independent ingestion, we can process each record completely
+        # Entities, aspects, and relationships can all be created independently
+        logger.info("📋 Processing records with independent ingestion...")
         
         for i, record in enumerate(records, 1):
             logger.info(f"Processing record {i}/{len(records)}: {record.get('entity_type', 'unknown')}")
             
-            # Ingest the entity
-            urn = self.ingest_entity(record)
-            if urn:
-                entity_urns[record.get('urn')] = urn
+            try:
+                # Phase 1: Create entity (if needed) and add aspects
+                logger.debug(f"Phase 1: Creating entity and aspects for {record.get('entity_type')}")
+                self.ingest_aspects(record, record.get('urn'))
+                
+                # Phase 2: Create relationships
+                logger.debug(f"Phase 2: Creating relationships for {record.get('entity_type')}")
+                self.ingest_relationships(record, record.get('urn'))
+                
+                logger.info(f"✅ Completed processing record {i}: {record.get('entity_type')}")
+                
+            except Exception as e:
+                logger.error(f"❌ Failed to process record {i}: {record.get('entity_type', 'unknown')} - {e}")
+                self.ingestion_stats['errors'] += 1
         
-        # Second pass: Add aspects
-        logger.info("📋 Phase 2: Adding aspects...")
-        for i, record in enumerate(records, 1):
-            urn = entity_urns.get(record.get('urn'))
-            if urn:
-                self.ingest_aspects(record, urn)
-        
-        # Third pass: Create relationships
-        logger.info("📋 Phase 3: Creating relationships...")
-        for i, record in enumerate(records, 1):
-            urn = entity_urns.get(record.get('urn'))
-            if urn:
-                self.ingest_relationships(record, urn)
-        
-        logger.info("✅ Ingestion completed!")
+        logger.info("✅ Independent ingestion completed!")
     
     def print_stats(self):
         """Print ingestion statistics."""
