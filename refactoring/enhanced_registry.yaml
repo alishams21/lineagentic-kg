@@ -217,13 +217,7 @@ aspects:
     defaults:
       sourceDataset: null
       targetDataset: null
-  
-  columnLineage:
-    type: versioned
-    properties:
-      - upstreams
-      - downstreams
-    required: ["upstreams", "downstreams"]
+
 
 # Entity Definitions
 entities:
@@ -241,7 +235,6 @@ entities:
       ownership: versioned
       globalTags: versioned
       datasetProfile: timeseries
-      columnLineage: versioned
     relationships:
       - type: HAS_COLUMN
         target: Column
@@ -268,7 +261,7 @@ entities:
     urn_generator: dataFlow
     properties:
       - platform
-      - flowId
+      - flow_id
       - namespace
       - name
       - env
@@ -283,12 +276,8 @@ entities:
     key: dataJobKey
     urn_generator: dataJob
     properties:
-      - name
-      - namespace
-      - versionId
-      - integration
-      - processingType
-      - jobType
+      - flow_urn
+      - job_name
     aspects:
       dataJobInfo: versioned
       documentation: versioned
@@ -366,8 +355,8 @@ entities:
     key: columnKey
     urn_generator: column
     properties:
-      - datasetUrn
-      - fieldPath
+      - dataset_urn
+      - field_path
     aspects:
       columnProperties: versioned
       transformation: versioned

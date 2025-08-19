@@ -146,176 +146,6 @@ class RegistryFactory:
         
         return filtered_payload
     
-    def generate_transformation_aspect(self, transformation_data: Dict[str, Any], 
-                                     source_dataset_urn: str, target_dataset_urn: str) -> Dict[str, Any]:
-        """Generate transformation aspect payload from transformation data"""
-        transformation_type = transformation_data.get('type')
-        if not transformation_type:
-            raise ValueError("Transformation type is required")
-        
-        # Build transformation aspect payload from transformation data
-        aspect_payload = {
-            'inputColumns': transformation_data.get('input_columns', []),
-            'transformationType': transformation_type,
-            'sourceDataset': source_dataset_urn,
-            'targetDataset': target_dataset_urn,
-            'steps': [
-                {
-                    'type': transformation_type,
-                    'description': transformation_data.get('description', ''),
-                    'config': transformation_data.get('config', {})
-                }
-            ],
-            'notes': f"Auto-generated transformation for {transformation_type}"
-        }
-        
-        return aspect_payload
-    
-    def generate_lineage_relationship_properties(self, transformation_data: Dict[str, Any],
-                                               source_dataset_urn: str, target_dataset_urn: str) -> Dict[str, Any]:
-        """Generate lineage relationship properties from transformation data"""
-        transformation_type = transformation_data.get('type')
-        if not transformation_type:
-            raise ValueError("Transformation type is required")
-        
-        # Build relationship properties directly from transformation data
-        relationship_props = {
-            'type': 'TRANSFORM',
-            'subtype': transformation_type,
-            'transformation': transformation_type,
-            'description': transformation_data.get('description', ''),
-            'source_dataset': source_dataset_urn,
-            'target_dataset': target_dataset_urn
-        }
-        
-        # Allow custom lineage properties if provided (optional)
-        lineage_properties = transformation_data.get('lineage_properties', {})
-        if lineage_properties:
-            relationship_props.update({
-                'type': lineage_properties.get('type', 'TRANSFORM'),
-                'subtype': lineage_properties.get('subtype', transformation_type),
-                'transformation': lineage_properties.get('transformation', transformation_type),
-                'description': lineage_properties.get('description', transformation_data.get('description', ''))
-            })
-        
-        return relationship_props
-    
-    def discover_transformation_types(self, transformations: Dict[str, Any]) -> List[str]:
-        """Discover transformation types from transformation data"""
-        discovered_types = set()
-        
-        for transformation_data in transformations.values():
-            transformation_type = transformation_data.get('type')
-            if transformation_type:
-                discovered_types.add(transformation_type)
-        
-        return list(discovered_types)
-    
-    def validate_transformation_data(self, transformations: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate and enrich transformation data"""
-        validated_transformations = {}
-        
-        for column_name, transformation_data in transformations.items():
-            # Validate required fields
-            if 'type' not in transformation_data:
-                print(f"Warning: Transformation for column '{column_name}' missing 'type' field")
-                continue
-            
-            if 'input_columns' not in transformation_data:
-                print(f"Warning: Transformation for column '{column_name}' missing 'input_columns' field")
-                continue
-            
-            # Ensure all required fields are present
-            validated_data = {
-                'type': transformation_data['type'],
-                'input_columns': transformation_data['input_columns'],
-                'description': transformation_data.get('description', ''),
-                'config': transformation_data.get('config', {}),
-                'lineage_properties': transformation_data.get('lineage_properties', {})
-            }
-            
-            validated_transformations[column_name] = validated_data
-        
-        return validated_transformations
-    
-    def create_column_lineage_relationships(self, writer, transformations: Dict[str, Any],
-                                          source_columns: Dict[str, str], target_columns: Dict[str, str],
-                                          source_dataset_urn: str, target_dataset_urn: str) -> None:
-        """Automatically create column lineage relationships based on transformations"""
-        print(f"Creating column lineage relationships from {source_dataset_urn} to {target_dataset_urn}")
-        
-        # Discover transformation types
-        discovered_types = self.discover_transformation_types(transformations)
-        print(f"Discovered transformation types: {discovered_types}")
-        
-        # Validate transformation data
-        validated_transformations = self.validate_transformation_data(transformations)
-        
-        for target_column_name, transformation_data in validated_transformations.items():
-            if target_column_name not in target_columns:
-                print(f"Warning: Target column {target_column_name} not found in target columns")
-                continue
-            
-            target_column_urn = target_columns[target_column_name]
-            input_columns = transformation_data.get('input_columns', [])
-            
-            # Create DERIVES_FROM relationships for each input column
-            for input_column_name in input_columns:
-                if input_column_name not in source_columns:
-                    print(f"Warning: Input column {input_column_name} not found in source columns")
-                    continue
-                
-                source_column_urn = source_columns[input_column_name]
-                
-                # Generate relationship properties from transformation aspect
-                relationship_props = self.generate_lineage_relationship_properties(
-                    transformation_data, source_dataset_urn, target_dataset_urn
-                )
-                
-                # Create the relationship
-                writer.create_derives_from_relationship(
-                    target_column_urn, source_column_urn, relationship_props
-                )
-                
-                print(f"  Created lineage: {input_column_name} -> {target_column_name} ({transformation_data.get('type')})")
-    
-    def create_dataset_lineage_relationship(self, writer, source_dataset_urn: str, target_dataset_urn: str,
-                                          via_job: str = None) -> None:
-        """Create dataset-level lineage relationship"""
-        relationship_props = {
-            'via': via_job or 'auto_generated',
-            'source_dataset': source_dataset_urn,
-            'target_dataset': target_dataset_urn
-        }
-        
-        writer.create_upstream_of_relationship(
-            source_dataset_urn, target_dataset_urn, relationship_props
-        )
-        
-        print(f"Created dataset lineage: {source_dataset_urn} -> {target_dataset_urn}")
-    
-    def get_transformation_statistics(self, transformations: Dict[str, Any]) -> Dict[str, Any]:
-        """Get statistics about transformations"""
-        stats = {
-            'total_transformations': len(transformations),
-            'transformation_types': {},
-            'input_column_usage': {},
-            'target_columns': list(transformations.keys())
-        }
-        
-        for column_name, transformation_data in transformations.items():
-            transformation_type = transformation_data.get('type', 'UNKNOWN')
-            input_columns = transformation_data.get('input_columns', [])
-            
-            # Count transformation types
-            stats['transformation_types'][transformation_type] = stats['transformation_types'].get(transformation_type, 0) + 1
-            
-            # Count input column usage
-            for input_col in input_columns:
-                stats['input_column_usage'][input_col] = stats['input_column_usage'].get(input_col, 0) + 1
-        
-        return stats
-    
     def generate_neo4j_writer_class(self) -> Type:
         """Generate Neo4jMetadataWriter class dynamically from registry"""
         
@@ -326,17 +156,134 @@ class RegistryFactory:
                 self.registry = registry
                 self.urn_generators = urn_generators
                 self.utility_functions = utility_functions
-                self.registry_factory = registry_factory  # Add this line
+                self.registry_factory = registry_factory
                 
-                # Generate entity and relationship methods
+                # Generate all methods from registry - fully generic approach
                 self._generate_entity_methods()
                 self._generate_relationship_methods()
                 self._generate_aspect_methods()
+                self._generate_utility_methods()
             
             def close(self):
                 self._driver.close()
             
-            def upsert_entity(self, label: str, urn: str, props: Dict[str, Any]) -> None:
+            def _generate_entity_methods(self):
+                """Generate entity-specific methods from registry"""
+                for entity_name, entity_def in self.registry.get('entities', {}).items():
+                    urn_gen_name = entity_def.get('urn_generator')
+                    if urn_gen_name and urn_gen_name in self.urn_generators:
+                        urn_gen = self.urn_generators[urn_gen_name]
+                        
+                        # Generate upsert method
+                        def create_upsert_method(entity_name, urn_gen, entity_def):
+                            def upsert_method(**kwargs):
+                                urn = urn_gen(**kwargs)
+                                props = {k: v for k, v in kwargs.items() if k in entity_def.get('properties', [])}
+                                self._upsert_entity_generic(entity_name, urn, props)
+                                return urn
+                            return upsert_method
+                        
+                        method_name = f"upsert_{entity_name.lower()}"
+                        setattr(self, method_name, create_upsert_method(entity_name, urn_gen, entity_def))
+                        
+                        # Generate get method
+                        def create_get_method(entity_name):
+                            def get_method(urn: str):
+                                return self._get_entity_generic(entity_name, urn)
+                            return get_method
+                        
+                        method_name = f"get_{entity_name.lower()}"
+                        setattr(self, method_name, create_get_method(entity_name))
+                        
+                        # Generate delete method
+                        def create_delete_method(entity_name):
+                            def delete_method(urn: str):
+                                return self._delete_entity_generic(entity_name, urn)
+                            return delete_method
+                        
+                        method_name = f"delete_{entity_name.lower()}"
+                        setattr(self, method_name, create_delete_method(entity_name))
+            
+            def _generate_relationship_methods(self):
+                """Generate relationship-specific methods from registry"""
+                for entity_name, entity_def in self.registry.get('entities', {}).items():
+                    for rel in entity_def.get('relationships', []):
+                        rel_type = rel['type']
+                        target = rel['target']
+                        direction = rel.get('direction', 'outgoing')
+                        properties = rel.get('properties', [])
+                        
+                        # Create a unique method name for each relationship
+                        method_name = f"create_{rel_type.lower()}_relationship"
+                        
+                        # Check if method already exists (for relationships with same type but different entities)
+                        if hasattr(self, method_name):
+                            # If method exists, create a more specific name
+                            method_name = f"create_{rel_type.lower()}_{entity_name.lower()}_to_{target.lower()}_relationship"
+                        
+                        def create_rel_method(rel_type, entity_name, target, direction, properties, method_name):
+                            def rel_method(from_urn: str, to_urn: str, props: Dict[str, Any]|None=None):
+                                # Filter properties to only include those defined in registry
+                                if props:
+                                    filtered_props = {k: v for k, v in props.items() if k in properties}
+                                else:
+                                    filtered_props = {}
+                                
+                                if direction == 'outgoing':
+                                    self._create_relationship_generic(entity_name, from_urn, rel_type, target, to_urn, filtered_props)
+                                else:
+                                    self._create_relationship_generic(target, to_urn, rel_type, entity_name, from_urn, filtered_props)
+                            return rel_method
+                        
+                        setattr(self, method_name, create_rel_method(rel_type, entity_name, target, direction, properties, method_name))
+            
+            def _generate_aspect_methods(self):
+                """Generate aspect-specific methods from registry"""
+                for aspect_name, aspect_def in self.registry.get('aspects', {}).items():
+                    aspect_type = aspect_def['type']
+                    
+                    # Generate upsert method
+                    def create_upsert_aspect_method(aspect_name, aspect_type):
+                        if aspect_type == 'versioned':
+                            def aspect_method(entity_label: str, entity_urn: str, payload: Dict[str, Any], version: int|None=None) -> int:
+                                return self._upsert_versioned_aspect_generic(entity_label, entity_urn, aspect_name, payload, version)
+                        else:  # timeseries
+                            def aspect_method(entity_label: str, entity_urn: str, payload: Dict[str, Any], timestamp_ms: int|None=None) -> None:
+                                self._append_timeseries_aspect_generic(entity_label, entity_urn, aspect_name, payload, timestamp_ms)
+                        return aspect_method
+                    
+                    method_name = f"upsert_{aspect_name.lower()}_aspect"
+                    setattr(self, method_name, create_upsert_aspect_method(aspect_name, aspect_type))
+                    
+                    # Generate get method
+                    def create_get_aspect_method(aspect_name, aspect_type):
+                        if aspect_type == 'versioned':
+                            def aspect_method(entity_label: str, entity_urn: str) -> Dict[str, Any]:
+                                return self._get_latest_aspect_generic(entity_label, entity_urn, aspect_name)
+                        else:  # timeseries
+                            def aspect_method(entity_label: str, entity_urn: str, limit: int = 100) -> List[Dict[str, Any]]:
+                                return self._get_timeseries_aspect_generic(entity_label, entity_urn, aspect_name, limit)
+                        return aspect_method
+                    
+                    method_name = f"get_{aspect_name.lower()}_aspect"
+                    setattr(self, method_name, create_get_aspect_method(aspect_name, aspect_type))
+                    
+                    # Generate delete method
+                    def create_delete_aspect_method(aspect_name):
+                        def aspect_method(entity_label: str, entity_urn: str) -> None:
+                            return self._delete_aspect_generic(entity_label, entity_urn, aspect_name)
+                        return aspect_method
+                    
+                    method_name = f"delete_{aspect_name.lower()}_aspect"
+                    setattr(self, method_name, create_delete_aspect_method(aspect_name))
+            
+            def _generate_utility_methods(self):
+                """Generate utility methods from utility functions"""
+                for func_name, func in self.utility_functions.items():
+                    setattr(self, func_name, func)
+            
+            # Generic core methods - these are the foundation for all generated methods
+            def _upsert_entity_generic(self, label: str, urn: str, props: Dict[str, Any]) -> None:
                 """Generic entity upsert method"""
                 props = {k: v for k, v in props.items() if v is not None}
                 with self._driver.session() as s:
@@ -345,29 +292,49 @@ class RegistryFactory:
                         MERGE (e:{label} {{urn:$urn}})
                         SET e += $props, e.lastUpdated=$now
                         """,
-                        urn=urn, props=props, now=self.utc_now_ms()
+                        urn=urn, props=props, now=self.utility_functions['utc_now_ms']()
                     )
             
-            def create_relationship(self, from_label: str, from_urn: str, rel: str,
-                                  to_label: str, to_urn: str, props: Dict[str, Any]|None=None) -> None:
-                """Generic relationship creation method"""
-                props = props or {}
-                print(f"DEBUG: Creating relationship {from_label}({from_urn}) -[{rel}]-> {to_label}({to_urn}) with props: {props}")
+            def _get_entity_generic(self, label: str, urn: str) -> Dict[str, Any]:
+                """Generic entity get method"""
                 with self._driver.session() as s:
                     result = s.run(
+                        f"""
+                        MATCH (e:{label} {{urn:$urn}})
+                        RETURN e
+                        """,
+                        urn=urn
+                    )
+                    record = result.single()
+                    return dict(record['e']) if record else None
+            
+            def _delete_entity_generic(self, label: str, urn: str) -> None:
+                """Generic entity delete method"""
+                with self._driver.session() as s:
+                    s.run(
+                        f"""
+                        MATCH (e:{label} {{urn:$urn}})
+                        DETACH DELETE e
+                        """,
+                        urn=urn
+                    )
+            
+            def _create_relationship_generic(self, from_label: str, from_urn: str, rel: str,
+                                          to_label: str, to_urn: str, props: Dict[str, Any]|None=None) -> None:
+                """Generic relationship creation method"""
+                props = props or {}
+                with self._driver.session() as s:
+                    s.run(
                         f"""
                         MATCH (a:{from_label} {{urn:$from_urn}})
                         MATCH (b:{to_label} {{urn:$to_urn}})
                         MERGE (a)-[r:{rel}]->(b)
                         SET r += $props
-                        RETURN count(r) as created
                         """,
                         from_urn=from_urn, to_urn=to_urn, props=props
                     )
-                    record = result.single()
-                    print(f"DEBUG: Relationship creation result: {record}")
             
-            def _validate_aspect(self, entity_label: str, aspect_name: str, kind: str):
+            def _validate_aspect_generic(self, entity_label: str, aspect_name: str, kind: str):
                 """Validate aspect against registry"""
                 ents = self.registry.get("entities", {})
                 ent = ents.get(entity_label, {})
@@ -380,7 +347,7 @@ class RegistryFactory:
                 if aspect_name not in self.registry.get("aspects", {}):
                     raise ValueError(f"Aspect '{aspect_name}' not defined in registry aspects section")
             
-            def _max_version(self, entity_label: str, entity_urn: str, aspect_name: str) -> int:
+            def _max_version_generic(self, entity_label: str, entity_urn: str, aspect_name: str) -> int:
                 """Get max version for versioned aspect"""
                 with self._driver.session() as s:
                     res = s.run(
@@ -393,15 +360,15 @@ class RegistryFactory:
                     rec = res.single()
                     return rec["maxv"] if rec else -1
             
-            def upsert_versioned_aspect(self, entity_label: str, entity_urn: str,
-                                      aspect_name: str, payload: Dict[str, Any], version: int|None=None) -> int:
-                """Upsert versioned aspect with validation"""
-                self._validate_aspect(entity_label, aspect_name, "versioned")
+            def _upsert_versioned_aspect_generic(self, entity_label: str, entity_urn: str,
+                                               aspect_name: str, payload: Dict[str, Any], version: int|None=None) -> int:
+                """Generic versioned aspect upsert method"""
+                self._validate_aspect_generic(entity_label, aspect_name, "versioned")
                 
                 # Validate and enrich payload using the factory's method
                 validated_payload = self.registry_factory.validate_aspect_payload(aspect_name, payload)
                 
-                current_max = self._max_version(entity_label, entity_urn, aspect_name)
+                current_max = self._max_version_generic(entity_label, entity_urn, aspect_name)
                 new_version = current_max + 1 if version is None else version
                 aspect_id = f"{entity_urn}|{aspect_name}|{new_version}"
                 
@@ -420,19 +387,19 @@ class RegistryFactory:
                         CREATE (e)-[:HAS_ASPECT {{name:$an, version:$ver, latest:true, kind:'versioned'}}]->(a)
                         """,
                         urn=entity_urn, id=aspect_id, an=aspect_name, ver=new_version,
-                        json=json.dumps(validated_payload, ensure_ascii=False), now=self.utc_now_ms()
+                        json=json.dumps(validated_payload, ensure_ascii=False), now=self.utility_functions['utc_now_ms']()
                     )
                 return new_version
             
-            def append_timeseries_aspect(self, entity_label: str, entity_urn: str,
-                                       aspect_name: str, payload: Dict[str, Any], timestamp_ms: int|None=None) -> None:
-                """Append timeseries aspect with validation"""
-                self._validate_aspect(entity_label, aspect_name, "timeseries")
+            def _append_timeseries_aspect_generic(self, entity_label: str, entity_urn: str,
+                                                aspect_name: str, payload: Dict[str, Any], timestamp_ms: int|None=None) -> None:
+                """Generic timeseries aspect append method"""
+                self._validate_aspect_generic(entity_label, aspect_name, "timeseries")
                 
                 # Validate and enrich payload using the factory's method
                 validated_payload = self.registry_factory.validate_aspect_payload(aspect_name, payload)
                 
-                ts = timestamp_ms or self.utc_now_ms()
+                ts = timestamp_ms or self.utility_functions['utc_now_ms']()
                 aspect_id = f"{entity_urn}|{aspect_name}|{ts}"
                 
                 with self._driver.session() as s:
@@ -443,120 +410,21 @@ class RegistryFactory:
                         CREATE (e)-[:HAS_ASPECT {{name:$an, ts:$ts, kind:'timeseries'}}]->(a)
                         """,
                         urn=entity_urn, id=aspect_id, an=aspect_name, ts=ts,
-                        json=json.dumps(validated_payload, ensure_ascii=False), now=self.utc_now_ms()
+                        json=json.dumps(validated_payload, ensure_ascii=False), now=self.utility_functions['utc_now_ms']()
                     )
             
-            def _generate_entity_methods(self):
-                """Generate entity-specific convenience methods"""
-                for entity_name, entity_def in self.registry.get('entities', {}).items():
-                    urn_gen_name = entity_def.get('urn_generator')
-                    if urn_gen_name and urn_gen_name in self.urn_generators:
-                        urn_gen = self.urn_generators[urn_gen_name]
-                        
-                        def create_entity_method(entity_name, urn_gen, entity_def):
-                            def entity_method(**kwargs):
-                                urn = urn_gen(**kwargs)
-                                props = {k: v for k, v in kwargs.items() if k in entity_def.get('properties', [])}
-                                self.upsert_entity(entity_name, urn, props)
-                                return urn
-                            return entity_method
-                        
-                        method_name = f"upsert_{entity_name.lower()}"
-                        setattr(self, method_name, create_entity_method(entity_name, urn_gen, entity_def))
-            
-            def _generate_relationship_methods(self):
-                """Generate relationship-specific convenience methods"""
-                for entity_name, entity_def in self.registry.get('entities', {}).items():
-                    for rel in entity_def.get('relationships', []):
-                        rel_type = rel['type']
-                        target = rel['target']
-                        direction = rel.get('direction', 'outgoing')
-                        
-                        # Create a unique method name for each relationship
-                        method_name = f"create_{rel_type.lower()}_relationship"
-                        
-                        # Check if method already exists (for relationships with same type but different entities)
-                        if hasattr(self, method_name):
-                            # If method exists, create a more specific name
-                            method_name = f"create_{rel_type.lower()}_{entity_name.lower()}_to_{target.lower()}_relationship"
-                        
-                        def create_rel_method(rel_type, entity_name, target, direction, rel, method_name):
-                            def rel_method(from_urn: str, to_urn: str, props: Dict[str, Any]|None=None):
-                                print(f"DEBUG: Called {rel_type} relationship method with from_urn={from_urn}, to_urn={to_urn}, direction={direction}")
-                                print(f"DEBUG: Entity name: {entity_name}, Target: {target}")
-                                if direction == 'outgoing':
-                                    self.create_relationship(entity_name, from_urn, rel_type, target, to_urn, props)
-                                else:
-                                    self.create_relationship(target, to_urn, rel_type, entity_name, from_urn, props)
-                            return rel_method
-                        
-                        setattr(self, method_name, create_rel_method(rel_type, entity_name, target, direction, rel, method_name))
-            
-            def _generate_aspect_methods(self):
-                """Generate aspect-specific convenience methods"""
-                for aspect_name, aspect_def in self.registry.get('aspects', {}).items():
-                    aspect_type = aspect_def['type']
-                    
-                    def create_aspect_method(aspect_name, aspect_type, aspect_def):
-                        if aspect_type == 'versioned':
-                            def aspect_method(entity_label: str, entity_urn: str, payload: Dict[str, Any], version: int|None=None) -> int:
-                                return self.upsert_versioned_aspect(entity_label, entity_urn, aspect_name, payload, version)
-                        else:  # timeseries
-                            def aspect_method(entity_label: str, entity_urn: str, payload: Dict[str, Any], timestamp_ms: int|None=None) -> None:
-                                self.append_timeseries_aspect(entity_label, entity_urn, aspect_name, payload, timestamp_ms)
-                        return aspect_method
-                    
-                    method_name = f"upsert_{aspect_name.lower()}_aspect"
-                    setattr(self, method_name, create_aspect_method(aspect_name, aspect_type, aspect_def))
-            
-            # Add utility functions as instance methods
-            def utc_now_ms(self) -> int:
-                return self.utility_functions['utc_now_ms']()
-            
-            def sanitize_id(self, raw: str) -> str:
-                return self.utility_functions['sanitize_id'](raw)
-            
-            def email_to_username(self, email: str) -> str:
-                return self.utility_functions['email_to_username'](email)
-            
-            def mask_secret(self, k: str, v: str) -> str:
-                return self.utility_functions['mask_secret'](k, v)
-            
-            # Add aspect validation method
-            def validate_aspect_payload(self, aspect_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-                return self.registry_factory.validate_aspect_payload(aspect_name, payload)
-
-            def get_aspect_version_history(self, entity_label: str, entity_urn: str, aspect_name: str) -> List[Dict[str, Any]]:
-                """Get complete version history for a specific aspect"""
+            def _get_latest_aspect_generic(self, entity_label: str, entity_urn: str, aspect_name: str) -> Dict[str, Any]:
+                """Generic method to get latest version of an aspect"""
                 with self._driver.session() as s:
-                    result = s.run("""
-                        MATCH (e:{entity_label} {{urn:$urn}})-[r:HAS_ASPECT {{name:$an, kind:'versioned'}}]->(a:Aspect:Versioned)
-                        RETURN a.version as version, 
-                               a.json as payload, 
-                               a.createdAt as created_at,
-                               r.latest as is_latest
-                        ORDER BY a.version ASC
-                    """.format(entity_label=entity_label), urn=entity_urn, an=aspect_name)
-                    
-                    history = []
-                    for record in result:
-                        history.append({
-                            'version': record['version'],
-                            'payload': json.loads(record['payload']) if record['payload'] else {},
-                            'created_at': record['created_at'],
-                            'is_latest': record['is_latest']
-                        })
-                    return history
-
-            def get_latest_aspect_version(self, entity_label: str, entity_urn: str, aspect_name: str) -> Dict[str, Any]:
-                """Get the latest version of a specific aspect"""
-                with self._driver.session() as s:
-                    result = s.run("""
+                    result = s.run(
+                        f"""
                         MATCH (e:{entity_label} {{urn:$urn}})-[r:HAS_ASPECT {{name:$an, kind:'versioned', latest:true}}]->(a:Aspect:Versioned)
                         RETURN a.version as version, 
                                a.json as payload, 
                                a.createdAt as created_at
-                    """.format(entity_label=entity_label), urn=entity_urn, an=aspect_name)
+                        """,
+                        urn=entity_urn, an=aspect_name
+                    )
                     
                     record = result.single()
                     if record:
@@ -566,27 +434,41 @@ class RegistryFactory:
                             'created_at': record['created_at']
                         }
                     return None
-
-            def get_aspect_version(self, entity_label: str, entity_urn: str, aspect_name: str, version: int) -> Dict[str, Any]:
-                """Get a specific version of an aspect"""
+            
+            def _get_timeseries_aspect_generic(self, entity_label: str, entity_urn: str, aspect_name: str, limit: int = 100) -> List[Dict[str, Any]]:
+                """Generic method to get timeseries aspect data"""
                 with self._driver.session() as s:
-                    result = s.run("""
-                        MATCH (e:{entity_label} {{urn:$urn}})-[r:HAS_ASPECT {{name:$an, kind:'versioned'}}]->(a:Aspect:Versioned {{version:$version}})
-                        RETURN a.version as version, 
+                    result = s.run(
+                        f"""
+                        MATCH (e:{entity_label} {{urn:$urn}})-[r:HAS_ASPECT {{name:$an, kind:'timeseries'}}]->(a:Aspect:TimeSeries)
+                        RETURN a.ts as timestamp, 
                                a.json as payload, 
-                               a.createdAt as created_at,
-                               r.latest as is_latest
-                    """.format(entity_label=entity_label), urn=entity_urn, an=aspect_name, version=version)
+                               a.createdAt as created_at
+                        ORDER BY a.ts DESC
+                        LIMIT $limit
+                        """,
+                        urn=entity_urn, an=aspect_name, limit=limit
+                    )
                     
-                    record = result.single()
-                    if record:
-                        return {
-                            'version': record['version'],
+                    timeseries_data = []
+                    for record in result:
+                        timeseries_data.append({
+                            'timestamp': record['timestamp'],
                             'payload': json.loads(record['payload']) if record['payload'] else {},
-                            'created_at': record['created_at'],
-                            'is_latest': record['is_latest']
-                        }
-                    return None
+                            'created_at': record['created_at']
+                        })
+                    return timeseries_data
+            
+            def _delete_aspect_generic(self, entity_label: str, entity_urn: str, aspect_name: str) -> None:
+                """Generic method to delete an aspect"""
+                with self._driver.session() as s:
+                    s.run(
+                        f"""
+                        MATCH (e:{entity_label} {{urn:$urn}})-[r:HAS_ASPECT {{name:$an}}]->(a:Aspect)
+                        DELETE r, a
+                        """,
+                        urn=entity_urn, an=aspect_name
+                    )
         
         return DynamicNeo4jMetadataWriter
     
@@ -594,4 +476,513 @@ class RegistryFactory:
         """Create Neo4jMetadataWriter instance"""
         writer_class = self.generate_neo4j_writer_class()
         return writer_class(uri, user, password, self.registry, self.urn_generators, self.utility_functions, self)
+
+
+def main():
+    """Comprehensive example demonstrating all entities, aspects, and relationships from enhanced_registry.yaml"""
+    print("🚀 Comprehensive RegistryFactory Example")
+    print("=" * 60)
+    
+    # Configuration
+    registry_path = "enhanced_registry.yaml"
+    neo4j_uri = "bolt://localhost:7687"
+    neo4j_user = "neo4j"
+    neo4j_password = "password"
+    
+    try:
+        # Create registry factory
+        print("1. Creating RegistryFactory...")
+        factory = RegistryFactory(registry_path)
+        print(f"   ✅ Registry loaded from: {registry_path}")
+        print(f"   📊 Entities found: {list(factory.registry['entities'].keys())}")
+        print(f"   📊 Aspects found: {list(factory.registry['aspects'].keys())}")
+        
+        # Create writer instance
+        print("\n2. Creating Neo4j writer...")
+        writer = factory.create_writer(neo4j_uri, neo4j_user, neo4j_password)
+        print("   ✅ Writer created successfully")
+        
+        # ============================================================================
+        # DYNAMIC METHOD GENERATION DEMONSTRATION
+        # ============================================================================
+        print("\n" + "="*60)
+        print("DYNAMIC METHOD GENERATION DEMONSTRATION")
+        print("="*60)
+        
+        print("\n📋 Generated Entity Methods:")
+        print("   Entity CRUD Operations:")
+        for entity_name in factory.registry['entities'].keys():
+            print(f"     ✅ writer.upsert_{entity_name.lower()}(**kwargs)")
+            print(f"     ✅ writer.get_{entity_name.lower()}(urn)")
+            print(f"     ✅ writer.delete_{entity_name.lower()}(urn)")
+        
+        print("\n📋 Generated Relationship Methods:")
+        print("   Relationship Creation:")
+        for entity_name, entity_def in factory.registry['entities'].items():
+            for rel in entity_def.get('relationships', []):
+                rel_type = rel['type']
+                target = rel['target']
+                method_name = f"create_{rel_type.lower()}_relationship"
+                
+                # Check if method already exists (for relationships with same type but different entities)
+                if hasattr(writer, method_name):
+                    method_name = f"create_{rel_type.lower()}_{entity_name.lower()}_to_{target.lower()}_relationship"
+                
+                print(f"     ✅ writer.{method_name}(from_urn, to_urn, props=None)")
+        
+        print("\n📋 Generated Aspect Methods:")
+        print("   Aspect CRUD Operations:")
+        for aspect_name, aspect_def in factory.registry['aspects'].items():
+            aspect_type = aspect_def['type']
+            print(f"     ✅ writer.upsert_{aspect_name.lower()}_aspect(entity_label, entity_urn, payload, version=None)")
+            print(f"     ✅ writer.get_{aspect_name.lower()}_aspect(entity_label, entity_urn)")
+            print(f"     ✅ writer.delete_{aspect_name.lower()}_aspect(entity_label, entity_urn)")
+        
+        print("\n📋 Generated Utility Methods:")
+        print("   Utility Functions:")
+        for func_name in factory.utility_functions.keys():
+            print(f"     ✅ writer.{func_name}()")
+        
+        print("\n📋 Available Methods on Writer Instance:")
+        print("   All dynamically generated methods:")
+        generated_methods = [method for method in dir(writer) if not method.startswith('_') and callable(getattr(writer, method))]
+        generated_methods.sort()
+        for method in generated_methods:
+            print(f"     🔧 writer.{method}()")
+        
+        print(f"\n📊 Total Generated Methods: {len(generated_methods)}")
+        print("   (All methods are dynamically generated from registry configuration!)")
+        
+        
+        # ============================================================================
+        # DATASET ENTITY EXAMPLES
+        # ============================================================================
+        print("\n" + "="*60)
+        print("DATASET ENTITY EXAMPLES")
+        print("="*60)
+        
+        # Create datasets
+        print("\n3. Creating datasets...")
+        raw_dataset_urn = writer.upsert_dataset(
+            platform="mysql",
+            name="raw_customer_data",
+            env="PROD"
+        )
+        staging_dataset_urn = writer.upsert_dataset(
+            platform="mysql",
+            name="staging_customer_data",
+            env="PROD"
+        )
+        final_dataset_urn = writer.upsert_dataset(
+            platform="mysql",
+            name="final_customer_data",
+            env="PROD"
+        )
+        print(f"   ✅ Raw dataset: {raw_dataset_urn}")
+        print(f"   ✅ Staging dataset: {staging_dataset_urn}")
+        print(f"   ✅ Final dataset: {final_dataset_urn}")
+        
+        # Add schema metadata aspect
+        print("\n4. Adding schema metadata...")
+        schema_payload = {
+            "schemaName": "customer_schema",
+            "platform": "mysql",
+            "version": 1,
+            "fields": [
+                {"fieldPath": "customer_id", "type": "INTEGER", "nullable": False},
+                {"fieldPath": "customer_name", "type": "VARCHAR(255)", "nullable": True},
+                {"fieldPath": "email", "type": "VARCHAR(255)", "nullable": True},
+                {"fieldPath": "created_date", "type": "TIMESTAMP", "nullable": True}
+            ],
+            "primaryKeys": ["customer_id"]
+        }
+        version = writer.upsert_schemametadata_aspect("Dataset", raw_dataset_urn, schema_payload)
+        print(f"   ✅ Schema metadata added (version: {version})")
+        
+        # Add dataset properties aspect
+        print("\n5. Adding dataset properties...")
+        properties_payload = {
+            "description": "Raw customer data from MySQL database",
+            "customProperties": {
+                "source_system": "CRM",
+                "refresh_frequency": "daily",
+                "data_retention_days": 365
+            },
+            "tags": ["customer", "pii", "business_critical"],
+            "externalUrl": "https://company.com/data/customer"
+        }
+        version = writer.upsert_datasetproperties_aspect("Dataset", raw_dataset_urn, properties_payload)
+        print(f"   ✅ Dataset properties added (version: {version})")
+        
+        # Add dataset profile (timeseries aspect)
+        print("\n6. Adding dataset profile...")
+        profile_payload = {
+            "rowCount": 10000,
+            "columnCount": 4,
+            "sizeInBytes": 2048000,
+            "lastModified": factory.utility_functions['utc_now_ms'](),
+            "partitionCount": 1
+        }
+        writer.upsert_datasetprofile_aspect("Dataset", raw_dataset_urn, profile_payload)
+        print("   ✅ Dataset profile added")
+        
+        # ============================================================================
+        # CORPUSER ENTITY EXAMPLES
+        # ============================================================================
+        print("\n" + "="*60)
+        print("CORPUSER ENTITY EXAMPLES")
+        print("="*60)
+        
+        # Create users
+        print("\n7. Creating users...")
+        user1_urn = writer.upsert_corpuser(username="john.doe@company.com")
+        user2_urn = writer.upsert_corpuser(username="jane.smith@company.com")
+        manager_urn = writer.upsert_corpuser(username="bob.manager@company.com")
+        print(f"   ✅ User 1: {user1_urn}")
+        print(f"   ✅ User 2: {user2_urn}")
+        print(f"   ✅ Manager: {manager_urn}")
+        
+        # Add user info aspect
+        print("\n8. Adding user info...")
+        user_info_payload = {
+            "active": True,
+            "displayName": "John Doe",
+            "email": "john.doe@company.com",
+            "title": "Data Engineer",
+            "department": "Engineering",
+            "managerUrn": manager_urn,
+            "skills": ["Python", "SQL", "Apache Spark"]
+        }
+        version = writer.upsert_corpuserinfo_aspect("CorpUser", user1_urn, user_info_payload)
+        print(f"   ✅ User info added (version: {version})")
+        
+        # ============================================================================
+        # CORPGROUP ENTITY EXAMPLES
+        # ============================================================================
+        print("\n" + "="*60)
+        print("CORPGROUP ENTITY EXAMPLES")
+        print("="*60)
+        
+        # Create groups
+        print("\n9. Creating groups...")
+        data_team_urn = writer.upsert_corpgroup(groupname="data_team")
+        engineering_urn = writer.upsert_corpgroup(groupname="engineering")
+        print(f"   ✅ Data team: {data_team_urn}")
+        print(f"   ✅ Engineering: {engineering_urn}")
+        
+        # Add group info aspect
+        print("\n10. Adding group info...")
+        group_info_payload = {
+            "name": "Data Team",
+            "description": "Data engineering and analytics team",
+            "email": "data-team@company.com",
+            "slackChannel": "#data-team"
+        }
+        version = writer.upsert_corpgroupinfo_aspect("CorpGroup", data_team_urn, group_info_payload)
+        print(f"   ✅ Group info added (version: {version})")
+        
+        # ============================================================================
+        # TAG ENTITY EXAMPLES
+        # ============================================================================
+        print("\n" + "="*60)
+        print("TAG ENTITY EXAMPLES")
+        print("="*60)
+        
+        # Create tags
+        print("\n11. Creating tags...")
+        pii_tag_urn = writer.upsert_tag(key="PII", value="true")
+        sensitive_tag_urn = writer.upsert_tag(key="SENSITIVE", value="")
+        business_critical_tag_urn = writer.upsert_tag(key="BUSINESS_CRITICAL", value="true")
+        print(f"   ✅ PII tag: {pii_tag_urn}")
+        print(f"   ✅ Sensitive tag: {sensitive_tag_urn}")
+        print(f"   ✅ Business critical tag: {business_critical_tag_urn}")
+        
+        # ============================================================================
+        # COLUMN ENTITY EXAMPLES
+        # ============================================================================
+        print("\n" + "="*60)
+        print("COLUMN ENTITY EXAMPLES")
+        print("="*60)
+        
+        # Create columns
+        print("\n12. Creating columns...")
+        customer_id_col_urn = writer.upsert_column(dataset_urn=raw_dataset_urn, field_path="customer_id")
+        customer_name_col_urn = writer.upsert_column(dataset_urn=raw_dataset_urn, field_path="customer_name")
+        email_col_urn = writer.upsert_column(dataset_urn=raw_dataset_urn, field_path="email")
+        print(f"   ✅ Customer ID column: {customer_id_col_urn}")
+        print(f"   ✅ Customer name column: {customer_name_col_urn}")
+        print(f"   ✅ Email column: {email_col_urn}")
+        
+        # Add column properties aspect
+        print("\n13. Adding column properties...")
+        column_props_payload = {
+            "description": "Unique customer identifier",
+            "dataType": "INTEGER",
+            "nullable": False,
+            "defaultValue": None
+        }
+        version = writer.upsert_columnproperties_aspect("Column", customer_id_col_urn, column_props_payload)
+        print(f"   ✅ Column properties added (version: {version})")
+        
+        # Add transformation aspect
+        print("\n14. Adding transformation aspect...")
+        transformation_payload = {
+            "inputColumns": ["raw_customer_id"],
+            "transformationType": "IDENTITY",
+            "sourceDataset": raw_dataset_urn,
+            "targetDataset": staging_dataset_urn,
+            "steps": [
+                {
+                    "type": "IDENTITY",
+                    "description": "Direct mapping from raw to staging",
+                    "config": {"mapping": "1:1"}
+                }
+            ],
+            "notes": "Identity transformation for customer ID"
+        }
+        version = writer.upsert_transformation_aspect("Column", customer_id_col_urn, transformation_payload)
+        print(f"   ✅ Transformation aspect added (version: {version})")
+        
+        # ============================================================================
+        # DATAFLOW ENTITY EXAMPLES
+        # ============================================================================
+        print("\n" + "="*60)
+        print("DATAFLOW ENTITY EXAMPLES")
+        print("="*60)
+        
+        # Create data flow
+        print("\n15. Creating data flow...")
+        dataflow_urn = writer.upsert_dataflow(
+            platform="airflow",
+            flow_id="customer_etl_pipeline",
+            namespace="customer_data",
+            name="Customer ETL Pipeline",
+            env="PROD"
+        )
+        print(f"   ✅ Data flow: {dataflow_urn}")
+        
+        # Add data flow info aspect
+        print("\n16. Adding data flow info...")
+        flow_info_payload = {
+            "name": "Customer ETL Pipeline",
+            "namespace": "customer_data",
+            "description": "ETL pipeline for customer data processing",
+            "version": "1.0.0"
+        }
+        version = writer.upsert_dataflowinfo_aspect("DataFlow", dataflow_urn, flow_info_payload)
+        print(f"   ✅ Data flow info added (version: {version})")
+        
+        # ============================================================================
+        # DATAJOB ENTITY EXAMPLES
+        # ============================================================================
+        print("\n" + "="*60)
+        print("DATAJOB ENTITY EXAMPLES")
+        print("="*60)
+        
+        # Create data job
+        print("\n17. Creating data job...")
+        datajob_urn = writer.upsert_datajob(
+            flow_urn=dataflow_urn,
+            job_name="customer_data_processing"
+        )
+        print(f"   ✅ Data job: {datajob_urn}")
+        
+        # Add data job info aspect
+        print("\n18. Adding data job info...")
+        job_info_payload = {
+            "name": "Customer Data Processing",
+            "namespace": "customer_data",
+            "versionId": "1.0.0",
+            "integration": "airflow",
+            "processingType": "batch",
+            "jobType": "etl",
+            "description": "Process customer data from raw to final"
+        }
+        version = writer.upsert_datajobinfo_aspect("DataJob", datajob_urn, job_info_payload)
+        print(f"   ✅ Data job info added (version: {version})")
+        
+        # Add documentation aspect
+        print("\n19. Adding documentation...")
+        doc_payload = {
+            "description": "Customer data processing job documentation",
+            "contentType": "markdown",
+            "content": "# Customer Data Processing\n\nThis job processes customer data..."
+        }
+        version = writer.upsert_documentation_aspect("DataJob", datajob_urn, doc_payload)
+        print(f"   ✅ Documentation added (version: {version})")
+        
+        # Add source code location aspect
+        print("\n20. Adding source code location...")
+        source_location_payload = {
+            "type": "github",
+            "url": "https://github.com/company/data-pipelines",
+            "repo": "data-pipelines",
+            "branch": "main",
+            "path": "jobs/customer_processing.py"
+        }
+        version = writer.upsert_sourcecodelocation_aspect("DataJob", datajob_urn, source_location_payload)
+        print(f"   ✅ Source code location added (version: {version})")
+        
+        # Add source code aspect
+        print("\n21. Adding source code...")
+        source_code_payload = {
+            "language": "python",
+            "snippet": "def process_customer_data():\n    # Process customer data\n    pass",
+            "fullCode": "import pandas as pd\n\ndef process_customer_data():\n    # Full implementation\n    pass"
+        }
+        version = writer.upsert_sourcecode_aspect("DataJob", datajob_urn, source_code_payload)
+        print(f"   ✅ Source code added (version: {version})")
+        
+        # Add environment properties aspect
+        print("\n22. Adding environment properties...")
+        env_props_payload = {
+            "env": "PROD",
+            "config": {
+                "memory": "4GB",
+                "cpu": "2 cores",
+                "timeout": "3600s"
+            }
+        }
+        version = writer.upsert_environmentproperties_aspect("DataJob", datajob_urn, env_props_payload)
+        print(f"   ✅ Environment properties added (version: {version})")
+        
+        # Add data job input/output aspect
+        print("\n23. Adding data job input/output...")
+        io_payload = {
+            "inputs": [raw_dataset_urn],
+            "outputs": [final_dataset_urn]
+        }
+        version = writer.upsert_datajobinputoutput_aspect("DataJob", datajob_urn, io_payload)
+        print(f"   ✅ Data job I/O added (version: {version})")
+        
+        # Add data job run (timeseries aspect)
+        print("\n24. Adding data job run...")
+        job_run_payload = {
+            "eventType": "STARTED",
+            "runId": "run_12345",
+            "parent": None,
+            "status": "RUNNING",
+            "startTime": factory.utility_functions['utc_now_ms'](),
+            "endTime": None
+        }
+        writer.upsert_datajobrun_aspect("DataJob", datajob_urn, job_run_payload)
+        print("   ✅ Data job run added")
+        
+        # ============================================================================
+        # RELATIONSHIP EXAMPLES
+        # ============================================================================
+        print("\n" + "="*60)
+        print("RELATIONSHIP EXAMPLES")
+        print("="*60)
+        
+        # Dataset relationships
+        print("\n25. Creating dataset relationships...")
+        writer.create_has_column_relationship(raw_dataset_urn, customer_id_col_urn)
+        writer.create_has_column_relationship(raw_dataset_urn, customer_name_col_urn)
+        writer.create_has_column_relationship(raw_dataset_urn, email_col_urn)
+        print("   ✅ HAS_COLUMN relationships created")
+        
+        # Tag relationships
+        print("\n26. Creating tag relationships...")
+        writer.create_tagged_relationship(raw_dataset_urn, pii_tag_urn, {"source": "auto_detection"})
+        writer.create_tagged_relationship(raw_dataset_urn, business_critical_tag_urn, {"source": "manual"})
+        print("   ✅ TAGGED relationships created")
+        
+        # CorpUser relationships
+        print("\n27. Creating corpuser relationships...")
+        writer.create_owns_corpuser_to_dataset_relationship(user1_urn, raw_dataset_urn, {"via": "data_ownership"})
+        writer.create_owns_corpgroup_to_dataset_relationship(data_team_urn, raw_dataset_urn, {"via": "team_ownership"})
+        print("   ✅ OWNS relationships created")
+        
+        # Dataset lineage relationships
+        print("\n27. Creating dataset lineage...")
+        writer.create_upstream_of_relationship(raw_dataset_urn, staging_dataset_urn, {"via": "etl_job_1"})
+        writer.create_upstream_of_relationship(staging_dataset_urn, final_dataset_urn, {"via": "etl_job_2"})
+        print("   ✅ UPSTREAM_OF relationships created")
+        
+        # Ownership relationships
+        print("\n28. Creating ownership relationships...")
+        writer.create_owns_relationship(user1_urn, raw_dataset_urn, {"via": "data_ownership"})
+        writer.create_owns_relationship(data_team_urn, raw_dataset_urn, {"via": "team_ownership"})
+        print("   ✅ OWNS relationships created")
+        
+        # Data flow relationships
+        print("\n29. Creating data flow relationships...")
+        writer.create_has_job_relationship(dataflow_urn, datajob_urn)
+        print("   ✅ HAS_JOB relationship created")
+        
+        # Data job relationships
+        print("\n30. Creating data job relationships...")
+        writer.create_consumes_relationship(datajob_urn, raw_dataset_urn)
+        writer.create_produces_relationship(datajob_urn, final_dataset_urn)
+        writer.create_owns_relationship(user1_urn, datajob_urn, {"via": "job_ownership"})
+        print("   ✅ Data job relationships created")
+        
+        # Column lineage relationships
+        print("\n31. Creating column lineage...")
+        writer.create_derives_from_relationship(
+            customer_id_col_urn, 
+            customer_id_col_urn, 
+            {
+                "type": "TRANSFORM",
+                "subtype": "IDENTITY",
+                "description": "Direct mapping",
+                "transformation": "IDENTITY",
+                "source_dataset": raw_dataset_urn,
+                "target_dataset": staging_dataset_urn
+            }
+        )
+        print("   ✅ DERIVES_FROM relationship created")
+        
+        # ============================================================================
+        # DATA RETRIEVAL EXAMPLES
+        # ============================================================================
+        print("\n" + "="*60)
+        print("DATA RETRIEVAL EXAMPLES")
+        print("="*60)
+        
+        # Retrieve entities
+        print("\n32. Retrieving entities...")
+        dataset_data = writer.get_dataset(raw_dataset_urn)
+        user_data = writer.get_corpuser(user1_urn)
+        group_data = writer.get_corpgroup(data_team_urn)
+        print(f"   📊 Dataset: {dataset_data}")
+        print(f"   📊 User: {user_data}")
+        print(f"   📊 Group: {group_data}")
+        
+        # Retrieve aspects
+        print("\n33. Retrieving aspects...")
+        schema_data = writer.get_schemametadata_aspect("Dataset", raw_dataset_urn)
+        user_info_data = writer.get_corpuserinfo_aspect("CorpUser", user1_urn)
+        group_info_data = writer.get_corpgroupinfo_aspect("CorpGroup", data_team_urn)
+        print(f"   📊 Schema: {schema_data}")
+        print(f"   📊 User info: {user_info_data}")
+        print(f"   📊 Group info: {group_info_data}")
+        
+        # Retrieve timeseries data
+        print("\n34. Retrieving timeseries data...")
+        profile_data = writer.get_datasetprofile_aspect("Dataset", raw_dataset_urn, limit=5)
+        job_run_data = writer.get_datajobrun_aspect("DataJob", datajob_urn, limit=5)
+        print(f"   📊 Profile data: {profile_data}")
+        print(f"   📊 Job run data: {job_run_data}")
+        
+        print("\n✅ Comprehensive example completed successfully!")
+        print("=" * 60)
+        print("🎉 All entities, aspects, and relationships from enhanced_registry.yaml demonstrated!")
+        
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        print("Make sure Neo4j is running and accessible at the specified URI")
+        import traceback
+        traceback.print_exc()
+    
+    finally:
+        # Clean up
+        if 'writer' in locals():
+            writer.close()
+            print("🔌 Writer connection closed")
+
+
+if __name__ == "__main__":
+    main()
 

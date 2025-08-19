@@ -172,7 +172,6 @@ class DataIngestionPipeline:
         self.writer.upsert_globaltags_aspect("Dataset", dataset_urn, global_tags_payload)
         
         # Column Lineage
-        self._create_column_lineage_aspect(dataset_urn, stage)
     
     def _create_columns(self, dataset_urn: str, fields: List[Dict[str, Any]], stage: str):
         """Create columns for a dataset"""
@@ -243,59 +242,7 @@ class DataIngestionPipeline:
         
         self.column_urns[stage] = stage_columns
     
-    def _create_column_lineage_aspect(self, dataset_urn: str, stage: str):
-        """Create column lineage aspect for dataset"""
-        if stage == 'raw':
-            # Raw dataset lineage
-            lineage_payload = {
-                "upstreams": [
-                    {
-                        "dataset": "urn:li:dataset:(urn:li:dataPlatform:crm,raw_customer_export,PROD)",
-                        "columns": ["customer_id", "first_name", "last_name", "email_address", "phone_number", "registration_date"]
-                    }
-                ],
-                "downstreams": [
-                    {
-                        "dataset": self.dataset_urns.get('staging', 'urn:li:dataset:(urn:li:dataPlatform:snowflake,staging_customer_data,PROD)'),
-                        "columns": ["customer_id", "full_name", "email_hash", "phone_clean", "registration_year"]
-                    }
-                ]
-            }
-        elif stage == 'staging':
-            # Staging dataset lineage
-            lineage_payload = {
-                "upstreams": [
-                    {
-                        "dataset": self.dataset_urns.get('raw', 'urn:li:dataset:(urn:li:dataPlatform:snowflake,raw_customer_data,PROD)'),
-                        "columns": ["customer_id", "first_name", "last_name", "email_address", "phone_number", "registration_date"]
-                    }
-                ],
-                "downstreams": [
-                    {
-                        "dataset": self.dataset_urns.get('final', 'urn:li:dataset:(urn:li:dataPlatform:snowflake,final_customer_data,PROD)'),
-                        "columns": ["customer_id", "customer_name", "email_encrypted", "phone_masked", "customer_segment", "data_quality_score"]
-                    }
-                ]
-            }
-        else:  # final
-            # Final dataset lineage
-            lineage_payload = {
-                "upstreams": [
-                    {
-                        "dataset": self.dataset_urns.get('staging', 'urn:li:dataset:(urn:li:dataPlatform:snowflake,staging_customer_data,PROD)'),
-                        "columns": ["customer_id", "full_name", "email_hash", "phone_clean", "registration_year"]
-                    }
-                ],
-                "downstreams": [
-                    {
-                        "dataset": "urn:li:dataset:(urn:li:dataPlatform:bi,customer_analytics,PROD)",
-                        "columns": ["customer_id", "customer_name", "customer_segment", "data_quality_score"]
-                    }
-                ]
-            }
-        
-        self.writer.upsert_columnlineage_aspect("Dataset", dataset_urn, lineage_payload)
-    
+ 
     def create_column_lineage_relationships(self):
         """Create DERIVES_FROM relationships between columns using registry-driven approach"""
         print("\n=== Creating Column-Level Lineage Relationships ===")
