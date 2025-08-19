@@ -1,0 +1,80 @@
+2025-08-19 19:03:57,290 - INFO - Initializing RegistryFactory...
+2025-08-19 19:03:57,303 - INFO - ✅ Registry loaded from: enhanced_registry.yaml
+2025-08-19 19:03:57,303 - INFO - Creating Neo4j writer...
+2025-08-19 19:03:57,304 - INFO - ✅ Neo4j writer created successfully
+2025-08-19 19:03:57,304 - INFO - 📋 Available dynamically generated methods:
+2025-08-19 19:03:57,304 - INFO - 📊 Total generated methods: 93
+2025-08-19 19:03:57,304 - INFO - Loading records from: example_records.json
+2025-08-19 19:03:57,305 - INFO - ✅ Loaded 9 records
+2025-08-19 19:03:57,305 - INFO - 🚀 Starting ingestion of 9 records...
+2025-08-19 19:03:57,305 - INFO - 📋 Phase 1: Creating entities...
+2025-08-19 19:03:57,305 - INFO - Processing record 1/9: Dataset
+2025-08-19 19:03:57,353 - INFO - ✅ Created Dataset: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD)
+2025-08-19 19:03:57,353 - INFO - Processing record 2/9: DataFlow
+2025-08-19 19:03:57,387 - INFO - ✅ Created DataFlow: urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD)
+2025-08-19 19:03:57,387 - INFO - Processing record 3/9: DataJob
+2025-08-19 19:03:57,402 - INFO - ✅ Created DataJob: urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers)
+2025-08-19 19:03:57,403 - INFO - Processing record 4/9: CorpUser
+2025-08-19 19:03:57,406 - INFO - ✅ Created CorpUser: urn:li:corpuser:john.doe
+2025-08-19 19:03:57,406 - INFO - Processing record 5/9: CorpGroup
+2025-08-19 19:03:57,407 - ERROR - ❌ Failed to ingest entity CorpGroup: 'groupname'
+2025-08-19 19:03:57,407 - INFO - Processing record 6/9: Tag
+2025-08-19 19:03:57,411 - INFO - ✅ Created Tag: urn:li:tag:domain=customer
+2025-08-19 19:03:57,411 - INFO - Processing record 7/9: Tag
+2025-08-19 19:03:57,415 - INFO - ✅ Created Tag: urn:li:tag:environment=production
+2025-08-19 19:03:57,415 - INFO - Processing record 8/9: Column
+2025-08-19 19:03:57,432 - INFO - ✅ Created Column: urn:li:dataset:(mysql,customers,PROD)#customer_id
+2025-08-19 19:03:57,432 - INFO - Processing record 9/9: Column
+2025-08-19 19:03:57,435 - INFO - ✅ Created Column: urn:li:dataset:(mysql,customers,PROD)#email
+2025-08-19 19:03:57,435 - INFO - 📋 Phase 2: Adding aspects...
+2025-08-19 19:03:57,456 - INFO - ✅ Added datasetProperties aspect to Dataset: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD) (version: 0)
+2025-08-19 19:03:57,462 - INFO - ✅ Added schemaMetadata aspect to Dataset: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD) (version: 0)
+2025-08-19 19:03:57,467 - INFO - ✅ Added ownership aspect to Dataset: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD) (version: 0)
+2025-08-19 19:03:57,470 - INFO - ✅ Added globalTags aspect to Dataset: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD) (version: 0)
+2025-08-19 19:03:57,473 - INFO - ✅ Added datasetProfile aspect to Dataset: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD) (version: None)
+2025-08-19 19:03:57,523 - INFO - ✅ Added dataFlowInfo aspect to DataFlow: urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD) (version: 0)
+2025-08-19 19:03:57,569 - INFO - ✅ Added dataJobInfo aspect to DataJob: urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers) (version: 0)
+2025-08-19 19:03:57,573 - INFO - ✅ Added documentation aspect to DataJob: urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers) (version: 0)
+2025-08-19 19:03:57,573 - ERROR - ❌ Failed to ingest aspect sourceCodeLocation for DataJob: urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers) - Aspect 'sourceCodeLocation' missing required properties: ['type']
+2025-08-19 19:03:57,624 - INFO - ✅ Added sourceCode aspect to DataJob: urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers) (version: 0)
+2025-08-19 19:03:57,628 - INFO - ✅ Added environmentProperties aspect to DataJob: urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers) (version: 0)
+2025-08-19 19:03:57,634 - INFO - ✅ Added ownership aspect to DataJob: urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers) (version: 0)
+2025-08-19 19:03:57,637 - INFO - ✅ Added dataJobInputOutput aspect to DataJob: urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers) (version: 0)
+2025-08-19 19:03:57,655 - INFO - ✅ Added dataJobRun aspect to DataJob: urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers) (version: None)
+2025-08-19 19:03:57,707 - INFO - ✅ Added corpUserInfo aspect to CorpUser: urn:li:corpuser:john.doe (version: 0)
+2025-08-19 19:03:57,774 - INFO - ✅ Added ownership aspect to CorpUser: urn:li:corpuser:john.doe (version: 0)
+2025-08-19 19:03:57,811 - INFO - ✅ Added columnProperties aspect to Column: urn:li:dataset:(mysql,customers,PROD)#customer_id (version: 0)
+2025-08-19 19:03:57,816 - INFO - ✅ Added transformation aspect to Column: urn:li:dataset:(mysql,customers,PROD)#customer_id (version: 0)
+2025-08-19 19:03:57,823 - INFO - ✅ Added columnProperties aspect to Column: urn:li:dataset:(mysql,customers,PROD)#email (version: 0)
+2025-08-19 19:03:57,827 - INFO - ✅ Added transformation aspect to Column: urn:li:dataset:(mysql,customers,PROD)#email (version: 0)
+2025-08-19 19:03:57,827 - INFO - 📋 Phase 3: Creating relationships...
+2025-08-19 19:03:57,829 - INFO - ✅ Created HAS_COLUMN relationship: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD) -> urn:li:dataset:(mysql,customers,PROD)#customer_id
+2025-08-19 19:03:57,830 - INFO - ✅ Created HAS_COLUMN relationship: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD) -> urn:li:dataset:(mysql,customers,PROD)#first_name
+2025-08-19 19:03:57,832 - INFO - ✅ Created HAS_COLUMN relationship: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD) -> urn:li:dataset:(mysql,customers,PROD)#last_name
+2025-08-19 19:03:57,833 - INFO - ✅ Created HAS_COLUMN relationship: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD) -> urn:li:dataset:(mysql,customers,PROD)#email
+2025-08-19 19:03:57,834 - INFO - ✅ Created HAS_COLUMN relationship: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD) -> urn:li:dataset:(mysql,customers,PROD)#created_at
+2025-08-19 19:03:57,837 - INFO - ✅ Created TAGGED relationship: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD) -> urn:li:tag:domain=customer
+2025-08-19 19:03:57,839 - INFO - ✅ Created TAGGED relationship: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD) -> urn:li:tag:environment=production
+2025-08-19 19:03:57,841 - INFO - ✅ Created UPSTREAM_OF relationship: urn:li:dataset:(urn:li:dataPlatform:mysql,customers,PROD) -> urn:li:dataset:(mysql,customer_analytics,PROD)
+2025-08-19 19:03:57,843 - INFO - ✅ Created HAS_JOB relationship: urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD) -> urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers)
+2025-08-19 19:03:57,844 - INFO - ✅ Created HAS_JOB relationship: urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD) -> urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),transform_customers)
+2025-08-19 19:03:57,847 - INFO - ✅ Created HAS_JOB relationship: urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD) -> urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),load_customers)
+2025-08-19 19:03:57,849 - INFO - ✅ Created CONSUMES relationship: urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers) -> urn:li:dataset:(mysql,source_customers,PROD)
+2025-08-19 19:03:57,850 - INFO - ✅ Created PRODUCES relationship: urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers) -> urn:li:dataset:(mysql,customers,PROD)
+2025-08-19 19:03:57,872 - INFO - ✅ Created OWNS relationship: urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers) -> urn:li:corpuser:jane.smith
+2025-08-19 19:03:57,874 - INFO - ✅ Created OWNS relationship: urn:li:corpuser:john.doe -> urn:li:dataset:(mysql,customers,PROD)
+2025-08-19 19:03:57,875 - INFO - ✅ Created OWNS relationship: urn:li:corpuser:john.doe -> urn:li:dataJob:(urn:li:dataFlow:(airflow,customer_etl_pipeline,PROD),extract_customers)
+2025-08-19 19:03:57,876 - INFO - ✅ Created TAGGED relationship: urn:li:tag:domain=customer -> urn:li:dataset:(mysql,customers,PROD)
+2025-08-19 19:03:57,877 - INFO - ✅ Created TAGGED relationship: urn:li:tag:environment=production -> urn:li:dataset:(mysql,customers,PROD)
+2025-08-19 19:03:57,879 - INFO - ✅ Created DERIVES_FROM relationship: urn:li:dataset:(mysql,customers,PROD)#customer_id -> urn:li:dataset:(mysql,source_customers,PROD)#id
+2025-08-19 19:03:57,880 - INFO - ✅ Created DERIVES_FROM relationship: urn:li:dataset:(mysql,customers,PROD)#email -> urn:li:dataset:(mysql,source_customers,PROD)#email
+2025-08-19 19:03:57,880 - INFO - ✅ Ingestion completed!
+2025-08-19 19:03:57,880 - INFO - ============================================================
+2025-08-19 19:03:57,880 - INFO - 📊 INGESTION STATISTICS
+2025-08-19 19:03:57,881 - INFO - ============================================================
+2025-08-19 19:03:57,881 - INFO - Entities created: 8
+2025-08-19 19:03:57,881 - INFO - Aspects created: 19
+2025-08-19 19:03:57,881 - INFO - Relationships created: 20
+2025-08-19 19:03:57,881 - INFO - Errors: 2
+2025-08-19 19:03:57,881 - INFO - ============================================================
+2025-08-19 19:03:57,881 - INFO - 🔌 Writer connection closed

@@ -1,407 +1,402 @@
 #!/usr/bin/env python3
 """
-Data Ingestion Script for Column-Level Lineage Example
+Automated Data Ingestion Script
 
-This script reads 3 JSON files containing customer data at different stages:
-1. Raw customer data (from source system)
-2. Staging customer data (cleaned and transformed)
-3. Final customer data (business-ready)
-
-It uses RegistryFactory to create entities, aspects, and relationships in Neo4j,
-establishing complete column-level lineage tracking.
+This script reads data from example_records.json and uses RegistryFactory
+to dynamically ingest all entities, aspects, and relationships into Neo4j.
 """
 
 import json
-import os
-import sys
+import logging
+from typing import Dict, List, Any, Optional
 from datetime import datetime
-from typing import Dict, Any, List
+import sys
+import os
 
-# Add the current directory to Python path to import RegistryFactory
+# Add the current directory to the path to import RegistryFactory
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
 from registry_factory import RegistryFactory
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('ingestion.log'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
-class DataIngestionPipeline:
-    """Pipeline for ingesting customer data with column-level lineage"""
+
+class AutomatedIngestion:
+    """
+    Automated ingestion class that reads from JSON and uses RegistryFactory
+    to dynamically ingest data into Neo4j.
+    """
     
     def __init__(self, registry_path: str, neo4j_uri: str, neo4j_user: str, neo4j_password: str):
-        """Initialize the ingestion pipeline"""
+        """
+        Initialize the automated ingestion system.
+        
+        Args:
+            registry_path: Path to the enhanced registry YAML file
+            neo4j_uri: Neo4j connection URI
+            neo4j_user: Neo4j username
+            neo4j_password: Neo4j password
+        """
         self.registry_path = registry_path
         self.neo4j_uri = neo4j_uri
         self.neo4j_user = neo4j_user
         self.neo4j_password = neo4j_password
         
-        # Initialize RegistryFactory
-        print("Initializing RegistryFactory...")
-        self.factory = RegistryFactory(registry_path)
-        self.writer = self.factory.create_writer(neo4j_uri, neo4j_user, neo4j_password)
-        
-        # Store URNs for lineage creation
-        self.dataset_urns = {}
-        self.column_urns = {}
-        
-    def load_json_data(self, file_path: str) -> Dict[str, Any]:
-        """Load data from JSON file"""
-        print(f"Loading data from {file_path}...")
-        with open(file_path, 'r') as f:
-            return json.load(f)
-    
-    def ingest_raw_dataset(self, data: Dict[str, Any]) -> str:
-        """Ingest raw customer dataset"""
-        print("\n=== Ingesting Raw Customer Dataset ===")
-        
-        # Create dataset
-        dataset_info = data['dataset_info']
-        dataset_urn = self.writer.upsert_dataset(
-            platform=dataset_info['platform'],
-            name=dataset_info['name'],
-            env=dataset_info['env']
-        )
-        self.dataset_urns['raw'] = dataset_urn
-        print(f"Created raw dataset: {dataset_urn}")
-        
-        # Create aspects
-        self._create_dataset_aspects(dataset_urn, data, 'raw')
-        
-        # Create columns
-        self._create_columns(dataset_urn, data['schema']['fields'], 'raw')
-        
-        return dataset_urn
-    
-    def ingest_staging_dataset(self, data: Dict[str, Any]) -> str:
-        """Ingest staging customer dataset"""
-        print("\n=== Ingesting Staging Customer Dataset ===")
-        
-        # Create dataset
-        dataset_info = data['dataset_info']
-        dataset_urn = self.writer.upsert_dataset(
-            platform=dataset_info['platform'],
-            name=dataset_info['name'],
-            env=dataset_info['env']
-        )
-        self.dataset_urns['staging'] = dataset_urn
-        print(f"Created staging dataset: {dataset_urn}")
-        
-        # Create aspects
-        self._create_dataset_aspects(dataset_urn, data, 'staging')
-        
-        # Create columns with transformations
-        self._create_columns_with_transformations(dataset_urn, data, 'staging')
-        
-        return dataset_urn
-    
-    def ingest_final_dataset(self, data: Dict[str, Any]) -> str:
-        """Ingest final customer dataset"""
-        print("\n=== Ingesting Final Customer Dataset ===")
-        
-        # Create dataset
-        dataset_info = data['dataset_info']
-        dataset_urn = self.writer.upsert_dataset(
-            platform=dataset_info['platform'],
-            name=dataset_info['name'],
-            env=dataset_info['env']
-        )
-        self.dataset_urns['final'] = dataset_urn
-        print(f"Created final dataset: {dataset_urn}")
-        
-        # Create aspects
-        self._create_dataset_aspects(dataset_urn, data, 'final')
-        
-        # Create columns with transformations
-        self._create_columns_with_transformations(dataset_urn, data, 'final')
-        
-        return dataset_urn
-    
-    def _create_dataset_aspects(self, dataset_urn: str, data: Dict[str, Any], stage: str):
-        """Create all aspects for a dataset"""
-        print(f"Creating aspects for {stage} dataset...")
-        
-        # Dataset Properties
-        dataset_info = data['dataset_info']
-        properties_payload = {
-            "description": dataset_info['description'],
-            "customProperties": {
-                "source": dataset_info['source'],
-                "environment": dataset_info['env'],
-                "data_type": dataset_info['data_type']
-            }
+        # Initialize RegistryFactory and writer
+        self.factory = None
+        self.writer = None
+        self.ingestion_stats = {
+            'entities_created': 0,
+            'aspects_created': 0,
+            'relationships_created': 0,
+            'errors': 0
         }
-        self.writer.upsert_datasetproperties_aspect("Dataset", dataset_urn, properties_payload)
         
-        # Schema Metadata
-        schema_payload = data['schema']
-        self.writer.upsert_schemametadata_aspect("Dataset", dataset_urn, schema_payload)
-        
-        # Dataset Profile
-        profile_data = data['profile']
-        profile_payload = {
-            "rowCount": profile_data['rowCount'],
-            "columnCount": profile_data['columnCount'],
-            "sizeInBytes": profile_data['sizeInBytes'],
-            "lastModified": self.writer.utc_now_ms()
-        }
-        self.writer.upsert_datasetprofile_aspect("Dataset", dataset_urn, profile_payload)
-        
-        # Ownership (assign to data engineering team)
-        ownership_payload = {
-            "owners": [
-                {
-                    "owner": "urn:li:corpuser:john.doe",
-                    "type": "DATAOWNER",
-                    "source": "ingestion"
-                }
-            ]
-        }
-        self.writer.upsert_ownership_aspect("Dataset", dataset_urn, ownership_payload)
-        
-        # Global Tags
-        global_tags_payload = {
-            "tags": [
-                {
-                    "tag": "urn:li:tag:PII=true",
-                    "source": "ingestion"
-                },
-                {
-                    "tag": "urn:li:tag:SENSITIVE",
-                    "source": "ingestion"
-                }
-            ]
-        }
-        self.writer.upsert_globaltags_aspect("Dataset", dataset_urn, global_tags_payload)
-        
-        # Column Lineage
-    
-    def _create_columns(self, dataset_urn: str, fields: List[Dict[str, Any]], stage: str):
-        """Create columns for a dataset"""
-        print(f"Creating columns for {stage} dataset...")
-        
-        stage_columns = {}
-        for field in fields:
-            field_path = field['fieldPath']
-            column_urn = self.writer.upsert_column(dataset_urn=dataset_urn, field_path=field_path)
-            stage_columns[field_path] = column_urn
-            
-            # Create column properties
-            col_props = {
-                "description": field['description'],
-                "dataType": field['type']['type'],
-                "nullable": field.get('nullable', True),
-                "defaultValue": None
-            }
-            self.writer.upsert_columnproperties_aspect("Column", column_urn, col_props)
-            
-            # Create HAS_COLUMN relationship
-            self.writer.create_has_column_relationship(dataset_urn, column_urn)
-            
-            print(f"  Created column: {field_path} -> {column_urn}")
-        
-        self.column_urns[stage] = stage_columns
-    
-    def _create_columns_with_transformations(self, dataset_urn: str, data: Dict[str, Any], stage: str):
-        """Create columns with transformation aspects"""
-        print(f"Creating columns with transformations for {stage} dataset...")
-        
-        fields = data['schema']['fields']
-        transformations = data.get('transformations', {})
-        
-        stage_columns = {}
-        for field in fields:
-            field_path = field['fieldPath']
-            column_urn = self.writer.upsert_column(dataset_urn=dataset_urn, field_path=field_path)
-            stage_columns[field_path] = column_urn
-            
-            # Create column properties
-            col_props = {
-                "description": field['description'],
-                "dataType": field['type']['type'],
-                "nullable": field.get('nullable', True),
-                "defaultValue": None
-            }
-            self.writer.upsert_columnproperties_aspect("Column", column_urn, col_props)
-            
-            # Create transformation aspect if exists
-            if field_path in transformations:
-                transform_data = transformations[field_path]
-                
-                # Use aspect-driven transformation aspect generation
-                transform_payload = self.factory.generate_transformation_aspect(
-                    transform_data, 
-                    source_dataset_urn=None,  # Will be set when lineage is created
-                    target_dataset_urn=dataset_urn
-                )
-                
-                self.writer.upsert_transformation_aspect("Column", column_urn, transform_payload)
-                print(f"  Created column with transformation: {field_path} ({transform_data.get('type')})")
-            else:
-                print(f"  Created column: {field_path}")
-            
-            # Create HAS_COLUMN relationship
-            self.writer.create_has_column_relationship(dataset_urn, column_urn)
-        
-        self.column_urns[stage] = stage_columns
-    
- 
-    def create_column_lineage_relationships(self):
-        """Create DERIVES_FROM relationships between columns using registry-driven approach"""
-        print("\n=== Creating Column-Level Lineage Relationships ===")
-        
-        # Raw to Staging lineage
-        if 'raw' in self.column_urns and 'staging' in self.column_urns:
-            print("Creating Raw -> Staging column lineage...")
-            
-            # Get transformations from staging data
-            staging_data = self.load_json_data(os.path.join("data", "staging_customer_data.json"))
-            transformations = staging_data.get('transformations', {})
-            
-            # Get transformation statistics
-            stats = self.factory.get_transformation_statistics(transformations)
-            print(f"Staging transformations: {stats['total_transformations']} total, types: {stats['transformation_types']}")
-            
-            # Use registry-driven lineage creation
-            self.factory.create_column_lineage_relationships(
-                self.writer,
-                transformations,
-                self.column_urns['raw'],
-                self.column_urns['staging'],
-                self.dataset_urns['raw'],
-                self.dataset_urns['staging']
-            )
-        
-        # Staging to Final lineage
-        if 'staging' in self.column_urns and 'final' in self.column_urns:
-            print("Creating Staging -> Final column lineage...")
-            
-            # Get transformations from final data
-            final_data = self.load_json_data(os.path.join("data", "final_customer_data.json"))
-            transformations = final_data.get('transformations', {})
-            
-            # Get transformation statistics
-            stats = self.factory.get_transformation_statistics(transformations)
-            print(f"Final transformations: {stats['total_transformations']} total, types: {stats['transformation_types']}")
-            
-            # Use registry-driven lineage creation
-            self.factory.create_column_lineage_relationships(
-                self.writer,
-                transformations,
-                self.column_urns['staging'],
-                self.column_urns['final'],
-                self.dataset_urns['staging'],
-                self.dataset_urns['final']
-            )
-    
-    def create_dataset_lineage_relationships(self):
-        """Create dataset-level lineage relationships using registry-driven approach"""
-        print("\n=== Creating Dataset-Level Lineage Relationships ===")
-        
-        # Raw -> Staging
-        if 'raw' in self.dataset_urns and 'staging' in self.dataset_urns:
-            self.factory.create_dataset_lineage_relationship(
-                self.writer,
-                self.dataset_urns['raw'],
-                self.dataset_urns['staging'],
-                via_job="etl_job_1"
-            )
-        
-        # Staging -> Final
-        if 'staging' in self.dataset_urns and 'final' in self.dataset_urns:
-            self.factory.create_dataset_lineage_relationship(
-                self.writer,
-                self.dataset_urns['staging'],
-                self.dataset_urns['final'],
-                via_job="etl_job_2"
-            )
-    
-    def create_tags_and_relationships(self):
-        """Create tags and tag relationships"""
-        print("\n=== Creating Tags and Relationships ===")
-        
-        # Create tags
-        tag1_urn = self.writer.upsert_tag(key="PII", value="true")
-        tag2_urn = self.writer.upsert_tag(key="SENSITIVE", value="")
-        
-        # Create tagged relationships for all datasets
-        for stage, dataset_urn in self.dataset_urns.items():
-            self.writer.create_tagged_relationship(dataset_urn, tag1_urn, {"source": "ingestion"})
-            self.writer.create_tagged_relationship(dataset_urn, tag2_urn, {"source": "ingestion"})
-            print(f"Tagged {stage} dataset with PII and SENSITIVE tags")
-    
-    def run_ingestion(self, data_dir: str):
-        """Run the complete ingestion pipeline"""
-        print("🚀 Starting Data Ingestion Pipeline")
-        print("=" * 60)
-        
+    def initialize(self):
+        """Initialize the RegistryFactory and Neo4j writer."""
         try:
-            # Load data from JSON files
-            raw_data = self.load_json_data(os.path.join(data_dir, "raw_customer_data.json"))
-            staging_data = self.load_json_data(os.path.join(data_dir, "staging_customer_data.json"))
-            final_data = self.load_json_data(os.path.join(data_dir, "final_customer_data.json"))
+            logger.info("Initializing RegistryFactory...")
+            self.factory = RegistryFactory(self.registry_path)
+            logger.info(f"✅ Registry loaded from: {self.registry_path}")
             
-            # Ingest datasets in order
-            self.ingest_raw_dataset(raw_data)
-            self.ingest_staging_dataset(staging_data)
-            self.ingest_final_dataset(final_data)
+            logger.info("Creating Neo4j writer...")
+            self.writer = self.factory.create_writer(
+                self.neo4j_uri, 
+                self.neo4j_user, 
+                self.neo4j_password
+            )
+            logger.info("✅ Neo4j writer created successfully")
             
-            # Create lineage relationships
-            self.create_column_lineage_relationships()
-            self.create_dataset_lineage_relationships()
-            
-            # Create tags and relationships
-            self.create_tags_and_relationships()
-            
-            print("\n" + "=" * 60)
-            print("✅ Data Ingestion Pipeline Completed Successfully!")
-            print("=" * 60)
-            
-            # Print summary
-            print(f"\n📊 Ingestion Summary:")
-            print(f"  • Raw Dataset: {self.dataset_urns.get('raw', 'N/A')}")
-            print(f"  • Staging Dataset: {self.dataset_urns.get('staging', 'N/A')}")
-            print(f"  • Final Dataset: {self.dataset_urns.get('final', 'N/A')}")
-            print(f"  • Total Columns Created: {sum(len(cols) for cols in self.column_urns.values())}")
-            print(f"  • Column Lineage Relationships: {len(self.column_urns.get('staging', {})) + len(self.column_urns.get('final', {}))}")
+            # Log available methods
+            logger.info("📋 Available dynamically generated methods:")
+            generated_methods = [method for method in dir(self.writer) 
+                               if not method.startswith('_') and callable(getattr(self.writer, method))]
+            generated_methods.sort()
+            for method in generated_methods:
+                logger.debug(f"   🔧 writer.{method}()")
+            logger.info(f"📊 Total generated methods: {len(generated_methods)}")
             
         except Exception as e:
-            print(f"❌ Error during ingestion: {str(e)}")
+            logger.error(f"❌ Failed to initialize: {e}")
             raise
-        finally:
-            # Close the writer
+    
+    def load_records(self, records_file: str) -> Dict[str, Any]:
+        """
+        Load records from JSON file.
+        
+        Args:
+            records_file: Path to the JSON records file
+            
+        Returns:
+            Dictionary containing the records data
+        """
+        try:
+            logger.info(f"Loading records from: {records_file}")
+            with open(records_file, 'r') as f:
+                records_data = json.load(f)
+            
+            logger.info(f"✅ Loaded {len(records_data.get('records', []))} records")
+            return records_data
+            
+        except FileNotFoundError:
+            logger.error(f"❌ Records file not found: {records_file}")
+            raise
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ Invalid JSON in records file: {e}")
+            raise
+    
+    def ingest_entity(self, record: Dict[str, Any]) -> Optional[str]:
+        """
+        Ingest a single entity record.
+        
+        Args:
+            record: Entity record dictionary
+            
+        Returns:
+            Generated URN if successful, None otherwise
+        """
+        try:
+            entity_type = record.get('entity_type')
+            entity_key = record.get('key', {})
+            
+            if not entity_type or not entity_key:
+                logger.warning(f"⚠️ Skipping record with missing entity_type or key: {record}")
+                return None
+            
+            # Generate the upsert method name (exact pattern from RegistryFactory)
+            method_name = f"upsert_{entity_type.lower()}"
+            
+            if not hasattr(self.writer, method_name):
+                logger.warning(f"⚠️ Method {method_name} not found for entity type {entity_type}")
+                return None
+            
+            # Get the method
+            method = getattr(self.writer, method_name)
+            
+            # Call the method with the key parameters
+            logger.debug(f"Calling {method_name} with params: {entity_key}")
+            urn = method(**entity_key)
+            
+            logger.info(f"✅ Created {entity_type}: {urn}")
+            self.ingestion_stats['entities_created'] += 1
+            return urn
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to ingest entity {record.get('entity_type', 'unknown')}: {e}")
+            self.ingestion_stats['errors'] += 1
+            return None
+    
+    def ingest_aspects(self, record: Dict[str, Any], entity_urn: str):
+        """
+        Ingest aspects for an entity.
+        
+        Args:
+            record: Entity record dictionary
+            entity_urn: The entity's URN
+        """
+        try:
+            entity_type = record.get('entity_type')
+            aspects = record.get('aspects', {})
+            
+            if not aspects:
+                logger.debug(f"No aspects to ingest for {entity_type}: {entity_urn}")
+                return
+            
+            for aspect_name, aspect_data in aspects.items():
+                try:
+                    # Skip if aspect_data is empty or doesn't have required fields
+                    if not aspect_data or not isinstance(aspect_data, dict):
+                        continue
+                    
+                    # Extract aspect type and payload
+                    aspect_type = aspect_data.get('type')
+                    payload = {k: v for k, v in aspect_data.items() if k != 'type'}
+                    
+                    if not payload:
+                        logger.debug(f"No payload for aspect {aspect_name}")
+                        continue
+                    
+                    # Generate the upsert method name
+                    method_name = f"upsert_{aspect_name.lower()}_aspect"
+                    
+                    if not hasattr(self.writer, method_name):
+                        logger.warning(f"⚠️ Method {method_name} not found for aspect {aspect_name}")
+                        continue
+                    
+                    # Get the method
+                    method = getattr(self.writer, method_name)
+                    
+                    # Call the method
+                    logger.debug(f"Calling {method_name} for {entity_type}: {entity_urn}")
+                    version = method(entity_type, entity_urn, payload)
+                    
+                    logger.info(f"✅ Added {aspect_name} aspect to {entity_type}: {entity_urn} (version: {version})")
+                    self.ingestion_stats['aspects_created'] += 1
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to ingest aspect {aspect_name} for {entity_type}: {entity_urn} - {e}")
+                    self.ingestion_stats['errors'] += 1
+                    
+        except Exception as e:
+            logger.error(f"❌ Failed to ingest aspects for {entity_type}: {entity_urn} - {e}")
+            self.ingestion_stats['errors'] += 1
+    
+    def ingest_relationships(self, record: Dict[str, Any], entity_urn: str):
+        """
+        Ingest relationships for an entity.
+        
+        Args:
+            record: Entity record dictionary
+            entity_urn: The entity's URN
+        """
+        try:
+            entity_type = record.get('entity_type')
+            relationships = record.get('relationships', [])
+            
+            if not relationships:
+                logger.debug(f"No relationships to ingest for {entity_type}: {entity_urn}")
+                return
+            
+            for rel in relationships:
+                try:
+                    rel_type = rel.get('type')
+                    target_urn = rel.get('target')
+                    direction = rel.get('direction', 'outgoing')
+                    properties = rel.get('properties', {})
+                    
+                    if not rel_type or not target_urn:
+                        logger.warning(f"⚠️ Skipping relationship with missing type or target: {rel}")
+                        continue
+                    
+                    # Determine method name based on the exact patterns from RegistryFactory
+                    # Examples: create_has_column_dataset_to_column_relationship, create_tagged_dataset_to_tag_relationship
+                    
+                    # First try the entity-specific method name pattern
+                    target_entity_type = self._get_target_entity_type(target_urn)
+                    method_name = f"create_{rel_type.lower()}_{entity_type.lower()}_to_{target_entity_type.lower()}_relationship"
+                    
+                    # If that doesn't exist, try the generic pattern
+                    if not hasattr(self.writer, method_name):
+                        method_name = f"create_{rel_type.lower()}_relationship"
+                    
+                    if not hasattr(self.writer, method_name):
+                        logger.warning(f"⚠️ Method {method_name} not found for relationship {rel_type}")
+                        continue
+                    
+                    # Get the method
+                    method = getattr(self.writer, method_name)
+                    
+                    # Call the method (always outgoing direction as per RegistryFactory pattern)
+                    logger.debug(f"Calling {method_name}: {entity_urn} -> {target_urn}")
+                    method(entity_urn, target_urn, properties)
+                    
+                    logger.info(f"✅ Created {rel_type} relationship: {entity_urn} -> {target_urn}")
+                    self.ingestion_stats['relationships_created'] += 1
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to ingest relationship {rel.get('type', 'unknown')}: {e}")
+                    self.ingestion_stats['errors'] += 1
+                    
+        except Exception as e:
+            logger.error(f"❌ Failed to ingest relationships for {entity_type}: {entity_urn} - {e}")
+            self.ingestion_stats['errors'] += 1
+    
+    def ingest_all_records(self, records_data: Dict[str, Any]):
+        """
+        Ingest all records from the loaded data.
+        
+        Args:
+            records_data: Dictionary containing records data
+        """
+        records = records_data.get('records', [])
+        
+        if not records:
+            logger.warning("⚠️ No records found in the data")
+            return
+        
+        logger.info(f"🚀 Starting ingestion of {len(records)} records...")
+        
+        # First pass: Create all entities
+        logger.info("📋 Phase 1: Creating entities...")
+        entity_urns = {}
+        
+        for i, record in enumerate(records, 1):
+            logger.info(f"Processing record {i}/{len(records)}: {record.get('entity_type', 'unknown')}")
+            
+            # Ingest the entity
+            urn = self.ingest_entity(record)
+            if urn:
+                entity_urns[record.get('urn')] = urn
+        
+        # Second pass: Add aspects
+        logger.info("📋 Phase 2: Adding aspects...")
+        for i, record in enumerate(records, 1):
+            urn = entity_urns.get(record.get('urn'))
+            if urn:
+                self.ingest_aspects(record, urn)
+        
+        # Third pass: Create relationships
+        logger.info("📋 Phase 3: Creating relationships...")
+        for i, record in enumerate(records, 1):
+            urn = entity_urns.get(record.get('urn'))
+            if urn:
+                self.ingest_relationships(record, urn)
+        
+        logger.info("✅ Ingestion completed!")
+    
+    def print_stats(self):
+        """Print ingestion statistics."""
+        logger.info("=" * 60)
+        logger.info("📊 INGESTION STATISTICS")
+        logger.info("=" * 60)
+        logger.info(f"Entities created: {self.ingestion_stats['entities_created']}")
+        logger.info(f"Aspects created: {self.ingestion_stats['aspects_created']}")
+        logger.info(f"Relationships created: {self.ingestion_stats['relationships_created']}")
+        logger.info(f"Errors: {self.ingestion_stats['errors']}")
+        logger.info("=" * 60)
+    
+    def _get_target_entity_type(self, target_urn: str) -> str:
+        """
+        Extract entity type from target URN.
+        
+        Args:
+            target_urn: The target URN
+            
+        Returns:
+            Entity type string
+        """
+        try:
+            # Parse URN to extract entity type
+            if target_urn.startswith("urn:li:dataset:"):
+                return "dataset"
+            elif target_urn.startswith("urn:li:dataflow:"):
+                return "dataflow"
+            elif target_urn.startswith("urn:li:datajob:"):
+                return "datajob"
+            elif target_urn.startswith("urn:li:corpuser:"):
+                return "corpuser"
+            elif target_urn.startswith("urn:li:corpgroup:"):
+                return "corpgroup"
+            elif target_urn.startswith("urn:li:tag:"):
+                return "tag"
+            elif "#" in target_urn:  # Column URN
+                return "column"
+            else:
+                return "unknown"
+        except Exception:
+            return "unknown"
+    
+    def cleanup(self):
+        """Clean up resources."""
+        if self.writer:
             self.writer.close()
+            logger.info("🔌 Writer connection closed")
 
 
 def main():
-    """Main function to run the ingestion pipeline"""
-    
+    """Main function to run the automated ingestion."""
     # Configuration
     registry_path = "enhanced_registry.yaml"
-    data_dir = "data"
-    
-    # Neo4j connection settings
+    records_file = "example_records.json"
     neo4j_uri = "bolt://localhost:7687"
     neo4j_user = "neo4j"
     neo4j_password = "password"
     
-    # Validate files exist
-    required_files = [
-        "raw_customer_data.json",
-        "staging_customer_data.json", 
-        "final_customer_data.json"
-    ]
+    # Create ingestion instance
+    ingestion = AutomatedIngestion(registry_path, neo4j_uri, neo4j_user, neo4j_password)
     
-    for file_name in required_files:
-        file_path = os.path.join(data_dir, file_name)
-        if not os.path.exists(file_path):
-            print(f"❌ Error: Required file not found: {file_path}")
-            sys.exit(1)
-    
-    if not os.path.exists(registry_path):
-        print(f"❌ Error: Registry file not found: {registry_path}")
+    try:
+        # Initialize
+        ingestion.initialize()
+        
+        # Load records
+        records_data = ingestion.load_records(records_file)
+        
+        # Ingest all records
+        ingestion.ingest_all_records(records_data)
+        
+        # Print statistics
+        ingestion.print_stats()
+        
+        logger.info("🎉 Automated ingestion completed successfully!")
+        
+    except Exception as e:
+        logger.error(f"❌ Ingestion failed: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
-    
-    # Create and run ingestion pipeline
-    pipeline = DataIngestionPipeline(registry_path, neo4j_uri, neo4j_user, neo4j_password)
-    pipeline.run_ingestion(data_dir)
+        
+    finally:
+        # Clean up
+        ingestion.cleanup()
 
 
 if __name__ == "__main__":
