@@ -1,0 +1,115 @@
+{
+  "dataset_info": {
+    "platform": "snowflake",
+    "name": "staging_customer_data",
+    "env": "PROD",
+    "description": "Staging area for customer data transformation",
+    "source": "ETL Pipeline",
+    "data_type": "staging"
+  },
+  "schema": {
+    "schemaName": "snowflake.staging_customer_data",
+    "platform": "urn:li:dataPlatform:snowflake",
+    "fields": [
+      {
+        "fieldPath": "customer_id",
+        "type": {"type": "VARCHAR"},
+        "description": "Cleaned and validated customer identifier",
+        "nullable": false
+      },
+      {
+        "fieldPath": "full_name",
+        "type": {"type": "VARCHAR"},
+        "description": "Concatenated full name from first and last name",
+        "nullable": true
+      },
+      {
+        "fieldPath": "email_hash",
+        "type": {"type": "VARCHAR"},
+        "description": "Hashed email address for privacy protection",
+        "nullable": true
+      },
+      {
+        "fieldPath": "phone_clean",
+        "type": {"type": "VARCHAR"},
+        "description": "Cleaned and formatted phone number",
+        "nullable": true
+      },
+      {
+        "fieldPath": "registration_year",
+        "type": {"type": "INTEGER"},
+        "description": "Extracted year from registration date",
+        "nullable": true
+      }
+    ]
+  },
+  "profile": {
+    "rowCount": 4800,
+    "columnCount": 5,
+    "sizeInBytes": 38400,
+    "lastModified": null
+  },
+  "sample_data": [
+    {
+      "customer_id": "CUST001",
+      "full_name": "John Smith",
+      "email_hash": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+      "phone_clean": "5551234567",
+      "registration_year": 2020
+    },
+    {
+      "customer_id": "CUST002",
+      "full_name": "Jane Doe",
+      "email_hash": "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890",
+      "phone_clean": "5559876543",
+      "registration_year": 2019
+    },
+    {
+      "customer_id": "CUST003",
+      "full_name": "Bob Johnson",
+      "email_hash": "c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890ab",
+      "phone_clean": "5554567890",
+      "registration_year": 2021
+    },
+    {
+      "customer_id": "CUST004",
+      "full_name": "Alice Brown",
+      "email_hash": "d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890abcd",
+      "phone_clean": "5553216540",
+      "registration_year": 2018
+    },
+    {
+      "customer_id": "CUST005",
+      "full_name": "Charlie Wilson",
+      "email_hash": "e5f6789012345678901234567890abcdef1234567890abcdef1234567890abcdef",
+      "phone_clean": "5557890123",
+      "registration_year": 2022
+    }
+  ],
+  "transformations": {
+    "full_name": {
+      "type": "CONCATENATION",
+      "input_columns": ["first_name", "last_name"],
+      "description": "Combine first and last name with space separator",
+      "config": {"separator": " ", "trim": true}
+    },
+    "email_hash": {
+      "type": "HASHING",
+      "input_columns": ["email_address"],
+      "description": "Hash email address using SHA-256 for privacy",
+      "config": {"algorithm": "SHA-256", "salt": "customer_salt"}
+    },
+    "phone_clean": {
+      "type": "CLEANING",
+      "input_columns": ["phone_number"],
+      "description": "Remove special characters and standardize format",
+      "config": {"removeChars": "()- .", "format": "XXXXXXXXXX"}
+    },
+    "registration_year": {
+      "type": "EXTRACTION",
+      "input_columns": ["registration_date"],
+      "description": "Extract year from registration date",
+      "config": {"format": "YYYY", "sourceFormat": "YYYY-MM-DD"}
+    }
+  }
+}

@@ -123,6 +123,15 @@ aspects:
       - partitionCount
     required: ["rowCount", "columnCount"]
   
+  dataFlowInfo:
+    type: versioned
+    properties:
+      - name
+      - namespace
+      - description
+      - version
+    required: ["name", "namespace"]
+  
   dataJobInfo:
     type: versioned
     properties:
@@ -202,6 +211,13 @@ aspects:
       - steps
       - notes
     required: ["inputColumns"]
+  
+  columnLineage:
+    type: versioned
+    properties:
+      - upstreams
+      - downstreams
+    required: ["upstreams", "downstreams"]
 
 # Entity Definitions
 entities:
@@ -299,6 +315,7 @@ entities:
       - username
     aspects:
       corpUserInfo: versioned
+      ownership: versioned
     relationships:
       - type: OWNS
         target: Dataset
@@ -316,6 +333,7 @@ entities:
       - name
     aspects:
       corpGroupInfo: versioned
+      ownership: versioned
     relationships:
       - type: OWNS
         target: Dataset
