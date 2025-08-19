@@ -10,7 +10,7 @@ Lineagentic-catalog is an graph based data catalog with generic model which can 
 ### Some of the important features of Lineagentic-Catalog are:
 - **Native Relationships**: Neo4j's native graph structure provides better performance for relationship traversal.
 - **Complex Queries**: Easier to write complex lineage queries
-- **JSON Storage**: Simplified JSON-based aspect storage
+- **JSON Storage**: Simple JSON-based aspect storage
 - **Flexibility**: Easier to evolve without schema migrations
 - **Column-Level**: Advanced column-level lineage
 - **Transformation Recipes**: Stores actual transformation logic
