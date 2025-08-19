@@ -226,7 +226,7 @@ class DataIngestionPipeline:
             if field_path in transformations:
                 transform_data = transformations[field_path]
                 
-                # Use registry-driven transformation aspect generation
+                # Use aspect-driven transformation aspect generation
                 transform_payload = self.factory.generate_transformation_aspect(
                     transform_data, 
                     source_dataset_urn=None,  # Will be set when lineage is created
@@ -234,7 +234,7 @@ class DataIngestionPipeline:
                 )
                 
                 self.writer.upsert_transformation_aspect("Column", column_urn, transform_payload)
-                print(f"  Created column with transformation: {field_path}")
+                print(f"  Created column with transformation: {field_path} ({transform_data.get('type')})")
             else:
                 print(f"  Created column: {field_path}")
             

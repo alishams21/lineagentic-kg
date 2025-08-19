@@ -153,19 +153,7 @@ class RegistryFactory:
         if not transformation_type:
             raise ValueError("Transformation type is required")
         
-        # Get transformation discovery configuration from registry
-        lineage_config = self.registry.get('lineage_config', {})
-        transformation_discovery = lineage_config.get('transformation_discovery', {})
-        transformation_templates = lineage_config.get('transformation_templates', {})
-        
-        # Use default template for any transformation type
-        default_template = transformation_templates.get('default', {})
-        patterns = transformation_templates.get('patterns', {})
-        
-        # Check if there's a specific pattern for this transformation type
-        template = patterns.get(transformation_type, default_template)
-        
-        # Build transformation aspect payload
+        # Build transformation aspect payload from transformation data
         aspect_payload = {
             'inputColumns': transformation_data.get('input_columns', []),
             'transformationType': transformation_type,
@@ -175,7 +163,7 @@ class RegistryFactory:
                 {
                     'type': transformation_type,
                     'description': transformation_data.get('description', ''),
-                    'config': transformation_data.get('config', template.get('default_config', {}))
+                    'config': transformation_data.get('config', {})
                 }
             ],
             'notes': f"Auto-generated transformation for {transformation_type}"
@@ -190,40 +178,25 @@ class RegistryFactory:
         if not transformation_type:
             raise ValueError("Transformation type is required")
         
-        # Get transformation discovery configuration from registry
-        lineage_config = self.registry.get('lineage_config', {})
-        transformation_discovery = lineage_config.get('transformation_discovery', {})
-        transformation_templates = lineage_config.get('transformation_templates', {})
-        
-        # Get default relationship properties
-        default_props = transformation_discovery.get('default_relationship_properties', {}).copy()
-        
-        # Use default template for any transformation type
-        default_template = transformation_templates.get('default', {})
-        patterns = transformation_templates.get('patterns', {})
-        
-        # Check if there's a specific pattern for this transformation type
-        template = patterns.get(transformation_type, default_template)
-        template_props = template.get('relationship_properties', {}).copy()
-        
-        # Merge properties: default -> template -> custom
-        relationship_props = default_props.copy()
-        relationship_props.update(template_props)
-        
-        # Replace placeholders in template properties
-        for key, value in relationship_props.items():
-            if isinstance(value, str):
-                relationship_props[key] = value.format(
-                    transformation_type=transformation_type,
-                    input_columns=", ".join(transformation_data.get('input_columns', []))
-                )
-        
-        # Add dataset information and description
-        relationship_props.update({
+        # Build relationship properties directly from transformation data
+        relationship_props = {
+            'type': 'TRANSFORM',
+            'subtype': transformation_type,
+            'transformation': transformation_type,
+            'description': transformation_data.get('description', ''),
             'source_dataset': source_dataset_urn,
-            'target_dataset': target_dataset_urn,
-            'description': transformation_data.get('description', '')
-        })
+            'target_dataset': target_dataset_urn
+        }
+        
+        # Allow custom lineage properties if provided (optional)
+        lineage_properties = transformation_data.get('lineage_properties', {})
+        if lineage_properties:
+            relationship_props.update({
+                'type': lineage_properties.get('type', 'TRANSFORM'),
+                'subtype': lineage_properties.get('subtype', transformation_type),
+                'transformation': lineage_properties.get('transformation', transformation_type),
+                'description': lineage_properties.get('description', transformation_data.get('description', ''))
+            })
         
         return relationship_props
     
@@ -257,7 +230,8 @@ class RegistryFactory:
                 'type': transformation_data['type'],
                 'input_columns': transformation_data['input_columns'],
                 'description': transformation_data.get('description', ''),
-                'config': transformation_data.get('config', {})
+                'config': transformation_data.get('config', {}),
+                'lineage_properties': transformation_data.get('lineage_properties', {})
             }
             
             validated_transformations[column_name] = validated_data
@@ -293,7 +267,7 @@ class RegistryFactory:
                 
                 source_column_urn = source_columns[input_column_name]
                 
-                # Generate relationship properties
+                # Generate relationship properties from transformation aspect
                 relationship_props = self.generate_lineage_relationship_properties(
                     transformation_data, source_dataset_urn, target_dataset_urn
                 )
@@ -308,21 +282,17 @@ class RegistryFactory:
     def create_dataset_lineage_relationship(self, writer, source_dataset_urn: str, target_dataset_urn: str,
                                           via_job: str = None) -> None:
         """Create dataset-level lineage relationship"""
-        lineage_config = self.registry.get('lineage_config', {})
-        lineage_relationships = lineage_config.get('lineage_relationships', {})
+        relationship_props = {
+            'via': via_job or 'auto_generated',
+            'source_dataset': source_dataset_urn,
+            'target_dataset': target_dataset_urn
+        }
         
-        if 'UPSTREAM_OF' in lineage_relationships:
-            relationship_props = {
-                'via': via_job or 'auto_generated',
-                'source_dataset': source_dataset_urn,
-                'target_dataset': target_dataset_urn
-            }
-            
-            writer.create_upstream_of_relationship(
-                source_dataset_urn, target_dataset_urn, relationship_props
-            )
-            
-            print(f"Created dataset lineage: {source_dataset_urn} -> {target_dataset_urn}")
+        writer.create_upstream_of_relationship(
+            source_dataset_urn, target_dataset_urn, relationship_props
+        )
+        
+        print(f"Created dataset lineage: {source_dataset_urn} -> {target_dataset_urn}")
     
     def get_transformation_statistics(self, transformations: Dict[str, Any]) -> Dict[str, Any]:
         """Get statistics about transformations"""
