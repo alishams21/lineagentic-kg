@@ -225,17 +225,14 @@ class DataIngestionPipeline:
             # Create transformation aspect if exists
             if field_path in transformations:
                 transform_data = transformations[field_path]
-                transform_payload = {
-                    "inputColumns": transform_data['input_columns'],
-                    "steps": [
-                        {
-                            "type": transform_data['type'],
-                            "description": transform_data['description'],
-                            "config": transform_data['config']
-                        }
-                    ],
-                    "notes": f"Transformation applied during {stage} stage"
-                }
+                
+                # Use registry-driven transformation aspect generation
+                transform_payload = self.factory.generate_transformation_aspect(
+                    transform_data, 
+                    source_dataset_urn=None,  # Will be set when lineage is created
+                    target_dataset_urn=dataset_urn
+                )
+                
                 self.writer.upsert_transformation_aspect("Column", column_urn, transform_payload)
                 print(f"  Created column with transformation: {field_path}")
             else:
@@ -300,182 +297,74 @@ class DataIngestionPipeline:
         self.writer.upsert_columnlineage_aspect("Dataset", dataset_urn, lineage_payload)
     
     def create_column_lineage_relationships(self):
-        """Create DERIVES_FROM relationships between columns"""
+        """Create DERIVES_FROM relationships between columns using registry-driven approach"""
         print("\n=== Creating Column-Level Lineage Relationships ===")
         
         # Raw to Staging lineage
         if 'raw' in self.column_urns and 'staging' in self.column_urns:
             print("Creating Raw -> Staging column lineage...")
             
-            # Customer ID: cleaning and validation
-            self.writer.create_derives_from_relationship(
-                self.column_urns['staging']['customer_id'],
-                self.column_urns['raw']['customer_id'],
-                {
-                    "type": "TRANSFORM",
-                    "subtype": "CLEANING",
-                    "description": "Customer ID cleaning and validation",
-                    "transformation": "VALIDATION"
-                }
-            )
+            # Get transformations from staging data
+            staging_data = self.load_json_data(os.path.join("data", "staging_customer_data.json"))
+            transformations = staging_data.get('transformations', {})
             
-            # Full name: concatenation
-            self.writer.create_derives_from_relationship(
-                self.column_urns['staging']['full_name'],
-                self.column_urns['raw']['first_name'],
-                {
-                    "type": "TRANSFORM",
-                    "subtype": "CONCATENATION",
-                    "description": "Full name concatenation",
-                    "transformation": "CONCAT"
-                }
-            )
+            # Get transformation statistics
+            stats = self.factory.get_transformation_statistics(transformations)
+            print(f"Staging transformations: {stats['total_transformations']} total, types: {stats['transformation_types']}")
             
-            self.writer.create_derives_from_relationship(
-                self.column_urns['staging']['full_name'],
-                self.column_urns['raw']['last_name'],
-                {
-                    "type": "TRANSFORM",
-                    "subtype": "CONCATENATION",
-                    "description": "Full name concatenation",
-                    "transformation": "CONCAT"
-                }
-            )
-            
-            # Email hash: hashing
-            self.writer.create_derives_from_relationship(
-                self.column_urns['staging']['email_hash'],
-                self.column_urns['raw']['email_address'],
-                {
-                    "type": "TRANSFORM",
-                    "subtype": "HASHING",
-                    "description": "Email hashing for privacy",
-                    "transformation": "SHA256_HASH"
-                }
-            )
-            
-            # Phone clean: cleaning
-            self.writer.create_derives_from_relationship(
-                self.column_urns['staging']['phone_clean'],
-                self.column_urns['raw']['phone_number'],
-                {
-                    "type": "TRANSFORM",
-                    "subtype": "CLEANING",
-                    "description": "Phone number cleaning and formatting",
-                    "transformation": "FORMAT"
-                }
-            )
-            
-            # Registration year: extraction
-            self.writer.create_derives_from_relationship(
-                self.column_urns['staging']['registration_year'],
-                self.column_urns['raw']['registration_date'],
-                {
-                    "type": "TRANSFORM",
-                    "subtype": "EXTRACTION",
-                    "description": "Year extraction from date",
-                    "transformation": "YEAR_EXTRACT"
-                }
+            # Use registry-driven lineage creation
+            self.factory.create_column_lineage_relationships(
+                self.writer,
+                transformations,
+                self.column_urns['raw'],
+                self.column_urns['staging'],
+                self.dataset_urns['raw'],
+                self.dataset_urns['staging']
             )
         
         # Staging to Final lineage
         if 'staging' in self.column_urns and 'final' in self.column_urns:
             print("Creating Staging -> Final column lineage...")
             
-            # Customer ID: passthrough
-            self.writer.create_derives_from_relationship(
-                self.column_urns['final']['customer_id'],
-                self.column_urns['staging']['customer_id'],
-                {
-                    "type": "TRANSFORM",
-                    "subtype": "PASSTHROUGH",
-                    "description": "Customer ID passed through unchanged",
-                    "transformation": "PASSTHROUGH"
-                }
-            )
+            # Get transformations from final data
+            final_data = self.load_json_data(os.path.join("data", "final_customer_data.json"))
+            transformations = final_data.get('transformations', {})
             
-            # Customer name: standardization
-            self.writer.create_derives_from_relationship(
-                self.column_urns['final']['customer_name'],
-                self.column_urns['staging']['full_name'],
-                {
-                    "type": "TRANSFORM",
-                    "subtype": "STANDARDIZATION",
-                    "description": "Customer name standardization",
-                    "transformation": "STANDARDIZE"
-                }
-            )
+            # Get transformation statistics
+            stats = self.factory.get_transformation_statistics(transformations)
+            print(f"Final transformations: {stats['total_transformations']} total, types: {stats['transformation_types']}")
             
-            # Email encrypted: encryption
-            self.writer.create_derives_from_relationship(
-                self.column_urns['final']['email_encrypted'],
-                self.column_urns['staging']['email_hash'],
-                {
-                    "type": "TRANSFORM",
-                    "subtype": "ENCRYPTION",
-                    "description": "Email encryption for security",
-                    "transformation": "AES256_ENCRYPT"
-                }
+            # Use registry-driven lineage creation
+            self.factory.create_column_lineage_relationships(
+                self.writer,
+                transformations,
+                self.column_urns['staging'],
+                self.column_urns['final'],
+                self.dataset_urns['staging'],
+                self.dataset_urns['final']
             )
-            
-            # Phone masked: masking
-            self.writer.create_derives_from_relationship(
-                self.column_urns['final']['phone_masked'],
-                self.column_urns['staging']['phone_clean'],
-                {
-                    "type": "TRANSFORM",
-                    "subtype": "MASKING",
-                    "description": "Phone number masking",
-                    "transformation": "MASK_LAST_4"
-                }
-            )
-            
-            # Customer segment: classification
-            self.writer.create_derives_from_relationship(
-                self.column_urns['final']['customer_segment'],
-                self.column_urns['staging']['registration_year'],
-                {
-                    "type": "TRANSFORM",
-                    "subtype": "CLASSIFICATION",
-                    "description": "Customer segment classification",
-                    "transformation": "CLASSIFY"
-                }
-            )
-            
-            # Data quality score: multi-input scoring
-            for input_col in ['customer_id', 'full_name', 'email_hash', 'phone_clean', 'registration_year']:
-                self.writer.create_derives_from_relationship(
-                    self.column_urns['final']['data_quality_score'],
-                    self.column_urns['staging'][input_col],
-                    {
-                        "type": "TRANSFORM",
-                        "subtype": "SCORING",
-                        "description": "Data quality score calculation",
-                        "transformation": "QUALITY_SCORE"
-                    }
-                )
     
     def create_dataset_lineage_relationships(self):
-        """Create dataset-level lineage relationships"""
+        """Create dataset-level lineage relationships using registry-driven approach"""
         print("\n=== Creating Dataset-Level Lineage Relationships ===")
         
         # Raw -> Staging
         if 'raw' in self.dataset_urns and 'staging' in self.dataset_urns:
-            self.writer.create_upstream_of_relationship(
+            self.factory.create_dataset_lineage_relationship(
+                self.writer,
                 self.dataset_urns['raw'],
                 self.dataset_urns['staging'],
-                {"via": "etl_job_1"}
+                via_job="etl_job_1"
             )
-            print(f"Created lineage: Raw -> Staging")
         
         # Staging -> Final
         if 'staging' in self.dataset_urns and 'final' in self.dataset_urns:
-            self.writer.create_upstream_of_relationship(
+            self.factory.create_dataset_lineage_relationship(
+                self.writer,
                 self.dataset_urns['staging'],
                 self.dataset_urns['final'],
-                {"via": "etl_job_2"}
+                via_job="etl_job_2"
             )
-            print(f"Created lineage: Staging -> Final")
     
     def create_tags_and_relationships(self):
         """Create tags and tag relationships"""

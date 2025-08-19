@@ -146,6 +146,206 @@ class RegistryFactory:
         
         return filtered_payload
     
+    def generate_transformation_aspect(self, transformation_data: Dict[str, Any], 
+                                     source_dataset_urn: str, target_dataset_urn: str) -> Dict[str, Any]:
+        """Generate transformation aspect payload from transformation data"""
+        transformation_type = transformation_data.get('type')
+        if not transformation_type:
+            raise ValueError("Transformation type is required")
+        
+        # Get transformation discovery configuration from registry
+        lineage_config = self.registry.get('lineage_config', {})
+        transformation_discovery = lineage_config.get('transformation_discovery', {})
+        transformation_templates = lineage_config.get('transformation_templates', {})
+        
+        # Use default template for any transformation type
+        default_template = transformation_templates.get('default', {})
+        patterns = transformation_templates.get('patterns', {})
+        
+        # Check if there's a specific pattern for this transformation type
+        template = patterns.get(transformation_type, default_template)
+        
+        # Build transformation aspect payload
+        aspect_payload = {
+            'inputColumns': transformation_data.get('input_columns', []),
+            'transformationType': transformation_type,
+            'sourceDataset': source_dataset_urn,
+            'targetDataset': target_dataset_urn,
+            'steps': [
+                {
+                    'type': transformation_type,
+                    'description': transformation_data.get('description', ''),
+                    'config': transformation_data.get('config', template.get('default_config', {}))
+                }
+            ],
+            'notes': f"Auto-generated transformation for {transformation_type}"
+        }
+        
+        return aspect_payload
+    
+    def generate_lineage_relationship_properties(self, transformation_data: Dict[str, Any],
+                                               source_dataset_urn: str, target_dataset_urn: str) -> Dict[str, Any]:
+        """Generate lineage relationship properties from transformation data"""
+        transformation_type = transformation_data.get('type')
+        if not transformation_type:
+            raise ValueError("Transformation type is required")
+        
+        # Get transformation discovery configuration from registry
+        lineage_config = self.registry.get('lineage_config', {})
+        transformation_discovery = lineage_config.get('transformation_discovery', {})
+        transformation_templates = lineage_config.get('transformation_templates', {})
+        
+        # Get default relationship properties
+        default_props = transformation_discovery.get('default_relationship_properties', {}).copy()
+        
+        # Use default template for any transformation type
+        default_template = transformation_templates.get('default', {})
+        patterns = transformation_templates.get('patterns', {})
+        
+        # Check if there's a specific pattern for this transformation type
+        template = patterns.get(transformation_type, default_template)
+        template_props = template.get('relationship_properties', {}).copy()
+        
+        # Merge properties: default -> template -> custom
+        relationship_props = default_props.copy()
+        relationship_props.update(template_props)
+        
+        # Replace placeholders in template properties
+        for key, value in relationship_props.items():
+            if isinstance(value, str):
+                relationship_props[key] = value.format(
+                    transformation_type=transformation_type,
+                    input_columns=", ".join(transformation_data.get('input_columns', []))
+                )
+        
+        # Add dataset information and description
+        relationship_props.update({
+            'source_dataset': source_dataset_urn,
+            'target_dataset': target_dataset_urn,
+            'description': transformation_data.get('description', '')
+        })
+        
+        return relationship_props
+    
+    def discover_transformation_types(self, transformations: Dict[str, Any]) -> List[str]:
+        """Discover transformation types from transformation data"""
+        discovered_types = set()
+        
+        for transformation_data in transformations.values():
+            transformation_type = transformation_data.get('type')
+            if transformation_type:
+                discovered_types.add(transformation_type)
+        
+        return list(discovered_types)
+    
+    def validate_transformation_data(self, transformations: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate and enrich transformation data"""
+        validated_transformations = {}
+        
+        for column_name, transformation_data in transformations.items():
+            # Validate required fields
+            if 'type' not in transformation_data:
+                print(f"Warning: Transformation for column '{column_name}' missing 'type' field")
+                continue
+            
+            if 'input_columns' not in transformation_data:
+                print(f"Warning: Transformation for column '{column_name}' missing 'input_columns' field")
+                continue
+            
+            # Ensure all required fields are present
+            validated_data = {
+                'type': transformation_data['type'],
+                'input_columns': transformation_data['input_columns'],
+                'description': transformation_data.get('description', ''),
+                'config': transformation_data.get('config', {})
+            }
+            
+            validated_transformations[column_name] = validated_data
+        
+        return validated_transformations
+    
+    def create_column_lineage_relationships(self, writer, transformations: Dict[str, Any],
+                                          source_columns: Dict[str, str], target_columns: Dict[str, str],
+                                          source_dataset_urn: str, target_dataset_urn: str) -> None:
+        """Automatically create column lineage relationships based on transformations"""
+        print(f"Creating column lineage relationships from {source_dataset_urn} to {target_dataset_urn}")
+        
+        # Discover transformation types
+        discovered_types = self.discover_transformation_types(transformations)
+        print(f"Discovered transformation types: {discovered_types}")
+        
+        # Validate transformation data
+        validated_transformations = self.validate_transformation_data(transformations)
+        
+        for target_column_name, transformation_data in validated_transformations.items():
+            if target_column_name not in target_columns:
+                print(f"Warning: Target column {target_column_name} not found in target columns")
+                continue
+            
+            target_column_urn = target_columns[target_column_name]
+            input_columns = transformation_data.get('input_columns', [])
+            
+            # Create DERIVES_FROM relationships for each input column
+            for input_column_name in input_columns:
+                if input_column_name not in source_columns:
+                    print(f"Warning: Input column {input_column_name} not found in source columns")
+                    continue
+                
+                source_column_urn = source_columns[input_column_name]
+                
+                # Generate relationship properties
+                relationship_props = self.generate_lineage_relationship_properties(
+                    transformation_data, source_dataset_urn, target_dataset_urn
+                )
+                
+                # Create the relationship
+                writer.create_derives_from_relationship(
+                    target_column_urn, source_column_urn, relationship_props
+                )
+                
+                print(f"  Created lineage: {input_column_name} -> {target_column_name} ({transformation_data.get('type')})")
+    
+    def create_dataset_lineage_relationship(self, writer, source_dataset_urn: str, target_dataset_urn: str,
+                                          via_job: str = None) -> None:
+        """Create dataset-level lineage relationship"""
+        lineage_config = self.registry.get('lineage_config', {})
+        lineage_relationships = lineage_config.get('lineage_relationships', {})
+        
+        if 'UPSTREAM_OF' in lineage_relationships:
+            relationship_props = {
+                'via': via_job or 'auto_generated',
+                'source_dataset': source_dataset_urn,
+                'target_dataset': target_dataset_urn
+            }
+            
+            writer.create_upstream_of_relationship(
+                source_dataset_urn, target_dataset_urn, relationship_props
+            )
+            
+            print(f"Created dataset lineage: {source_dataset_urn} -> {target_dataset_urn}")
+    
+    def get_transformation_statistics(self, transformations: Dict[str, Any]) -> Dict[str, Any]:
+        """Get statistics about transformations"""
+        stats = {
+            'total_transformations': len(transformations),
+            'transformation_types': {},
+            'input_column_usage': {},
+            'target_columns': list(transformations.keys())
+        }
+        
+        for column_name, transformation_data in transformations.items():
+            transformation_type = transformation_data.get('type', 'UNKNOWN')
+            input_columns = transformation_data.get('input_columns', [])
+            
+            # Count transformation types
+            stats['transformation_types'][transformation_type] = stats['transformation_types'].get(transformation_type, 0) + 1
+            
+            # Count input column usage
+            for input_col in input_columns:
+                stats['input_column_usage'][input_col] = stats['input_column_usage'].get(input_col, 0) + 1
+        
+        return stats
+    
     def generate_neo4j_writer_class(self) -> Type:
         """Generate Neo4jMetadataWriter class dynamically from registry"""
         
