@@ -1,4 +1,158 @@
 # Enhanced Registry with URN patterns, relationships, and generation rules
+# Completely generic and configurable - no hardcoded assumptions
+
+# Configuration for registry structure and processing
+registry_config:
+  required_sections: ["entities", "urn_patterns", "aspect_types", "aspects", "utility_functions"]
+  enabled_utility_functions: ["sanitize_id", "email_to_username", "mask_secret", "utc_now_ms"]
+
+# Section configuration - all section names are configurable
+section_config:
+  metadata_section: "metadata"
+  urn_patterns_section: "urn_patterns"
+  aspects_section: "aspects"
+  entities_section: "entities"
+  aspect_types_section: "aspect_types"
+  aspect_relationships_section: "aspect_relationships"
+
+# Field processing configuration
+field_processing:
+  skip_fields: ["template"]
+  context_fields: ["pattern", "generators"]
+  prefix_config:
+    section: "metadata"
+    field: "urn_prefix"
+
+# Context configuration
+context_config:
+  pattern_field: "pattern"
+  generators_field: "generators"
+
+# Aspect processing configuration
+aspect_processing:
+  properties_field: "properties"
+  context_exclude_fields: ["aspect"]
+
+# Entity configuration
+entity_config:
+  urn_generator_field: "urn_generator"
+  properties_field: "properties"
+
+# Relationship configuration
+relationship_config:
+  rules_field: "rules"
+  entity_type_field: "entity_type"
+
+# Aspect configuration
+aspect_config:
+  type_field: "type"
+  entity_creation_field: "entity_creation"
+
+# Aspect context configuration
+aspect_context_config:
+  aspect_field: "aspect"
+
+# List processing configuration
+list_processing:
+  dependency_patterns: ["depend"]
+
+# String processing configuration
+string_processing:
+  pattern_field: "pattern"
+  value_field: "value"
+  when_value_present_field: "when_value_present"
+  when_value_absent_field: "when_value_absent"
+
+# Utility function definitions - completely generic
+utility_functions:
+  sanitize_id:
+    type: "string_processing"
+    description: "Sanitize string by removing invalid characters"
+    parameters: ["raw"]
+    implementation:
+      operation: "regex_replace"
+      pattern_config: "sanitize_pattern"
+      replacement_config: "sanitize_replacement"
+      pre_processing: "strip"
+      strip_method_config: "strip_method"
+  
+  email_to_username:
+    type: "string_processing"
+    description: "Extract username from email address"
+    parameters: ["email"]
+    implementation:
+      operation: "split_and_extract"
+      separator_config: "email_separator"
+      split_limit_config: "split_limit"
+      split_index_config: "split_index"
+      post_processing: "regex_replace"
+      pattern_config: "sanitize_pattern"
+      replacement_config: "sanitize_replacement"
+  
+  mask_secret:
+    type: "data_masking"
+    description: "Mask sensitive data in key-value pairs"
+    parameters: ["key", "value"]
+    implementation:
+      operation: "conditional_replace"
+      condition: "regex_match"
+      pattern_config: "secret_pattern"
+      regex_flag_config: "regex_flag"
+      replacement_config: "mask_replacement"
+  
+  utc_now_ms:
+    type: "timestamp"
+    description: "Get current UTC timestamp in milliseconds"
+    parameters: []
+    implementation:
+      operation: "datetime_now"
+      method_config: "now_method"
+      timezone_config: "timezone"
+      post_processing: "timestamp_multiply"
+      multiplier_config: "timestamp_multiplier"
+
+# Utility function configuration
+utility_config:
+  # sanitize_id function configuration
+  sanitize_pattern: "[^a-zA-Z0-9_.-]+"
+  sanitize_replacement: "_"
+  strip_method: "strip"
+  
+  # email_to_username function configuration
+  email_separator: "@"
+  split_limit: 1
+  split_index: 0
+  
+  # mask_secret function configuration
+  secret_pattern: "(pass|secret|key|token)"
+  mask_replacement: "****"
+  regex_flag: "IGNORECASE"
+  
+  # utc_now_ms function configuration
+  now_method: "now"
+  timezone: "UTC"
+  timestamp_multiplier: 1000
+
+# Relationship rule configuration
+relationship_rule_config:
+  relationship_type_field: "relationship_type"
+  source_entity_field: "source_entity"
+  target_entity_field: "target_entity"
+  direction_field: "direction"
+  field_mapping_field: "field_mapping"
+  additional_relationships_field: "additional_relationships"
+  source_field_name: "source_field"
+  target_field_name: "target_field"
+  source_entity_type_name: "source_entity_type"
+  target_entity_type_name: "target_entity_type"
+  source_urn_field_name: "source_urn_field"
+  target_urn_field_name: "target_urn_field"
+  array_separator: "[]"
+  default_direction: "outgoing"
+  default_target_field: "urn"
+  outgoing_direction: "outgoing"
+  urn_field_name: "urn"
+
 metadata:
   version: "1.0"
   description: "Enhanced registry for dynamic Neo4jMetadataWriter generation"
@@ -423,17 +577,6 @@ aspect_relationships:
           source_urn_field: "username"
           target_entity_type: "Dataset"
           target_urn_field: "urn"
-      - entity_type: "Dataset"
-        relationship_type: "OWNS"
-        source_entity: "CorpGroup"
-        target_entity: "Dataset"
-        direction: "incoming"
-        field_mapping:
-          source_field: "owners[].owner"
-          source_entity_type: "CorpGroup"
-          source_urn_field: "name"
-          target_entity_type: "Dataset"
-          target_urn_field: "urn"
       - entity_type: "DataJob"
         relationship_type: "OWNS"
         source_entity: "CorpUser"
@@ -443,17 +586,6 @@ aspect_relationships:
           source_field: "owners[].owner"
           source_entity_type: "CorpUser"
           source_urn_field: "username"
-          target_entity_type: "DataJob"
-          target_urn_field: "urn"
-      - entity_type: "DataJob"
-        relationship_type: "OWNS"
-        source_entity: "CorpGroup"
-        target_entity: "DataJob"
-        direction: "incoming"
-        field_mapping:
-          source_field: "owners[].owner"
-          source_entity_type: "CorpGroup"
-          source_urn_field: "name"
           target_entity_type: "DataJob"
           target_urn_field: "urn"
 
@@ -473,13 +605,26 @@ aspect_relationships:
           target_urn_field: "key"
 
   transformation:
-    description: "Creates DERIVES_FROM and UPSTREAM_OF relationships from transformation aspect data"
+    description: "Creates DERIVES_FROM, TRANSFORMS and UPSTREAM_OF relationships from transformation aspect data"
     rules:
       - entity_type: "Column"
         relationship_type: "DERIVES_FROM"
         source_entity: "Column"
         target_entity: "Column"
         direction: "outgoing"
+        field_mapping:
+          source_field: "inputColumns[]"
+          source_entity_type: "Column"
+          source_urn_field: "urn"
+          target_entity_type: "Column"
+          target_urn_field: "urn"
+          source_urn_template: "{sourceDataset}#{source_field}"
+          target_urn_template: "{targetDataset}#{field_path}"
+      - entity_type: "Column"
+        relationship_type: "TRANSFORMS"
+        source_entity: "Column"
+        target_entity: "Column"
+        direction: "incoming"
         field_mapping:
           source_field: "inputColumns[]"
           source_entity_type: "Column"
@@ -553,4 +698,4 @@ aspect_relationships:
           source_urn_field: "urn"
           target_entity_type: "DataJob"
           target_urn_field: "urn"
-          target_urn_template: "{source_urn}#{job_name}"
+          target_urn_template: "{source_urn}#{source_field}"
