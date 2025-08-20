@@ -1,0 +1,78 @@
+{
+  "metadata": {
+    "source": "rest_api",
+    "endpoint": "/api/v1/aspects/schemaMetadata",
+    "timestamp": "2024-01-15T13:30:00Z",
+    "request_id": "req_44444"
+  },
+  "aspect_name": "schemaMetadata",
+  "aspect_type": "versioned",
+  "entity_type": "Dataset",
+  "entity_key": {
+    "platform": "postgresql",
+    "name": "user_profiles",
+    "env": "PROD"
+  },
+  "payload": {
+    "schemaName": "user_profiles_schema",
+    "platform": "postgresql",
+    "version": "2.1",
+    "fields": [
+      {
+        "fieldPath": "user_id",
+        "type": "UUID",
+        "nullable": false,
+        "description": "Unique user identifier"
+      },
+      {
+        "fieldPath": "username",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "description": "User's unique username"
+      },
+      {
+        "fieldPath": "email",
+        "type": "VARCHAR(255)",
+        "nullable": false,
+        "description": "User's email address"
+      },
+      {
+        "fieldPath": "first_name",
+        "type": "VARCHAR(100)",
+        "nullable": true,
+        "description": "User's first name"
+      },
+      {
+        "fieldPath": "last_name",
+        "type": "VARCHAR(100)",
+        "nullable": true,
+        "description": "User's last name"
+      },
+      {
+        "fieldPath": "date_of_birth",
+        "type": "DATE",
+        "nullable": true,
+        "description": "User's date of birth"
+      },
+      {
+        "fieldPath": "created_at",
+        "type": "TIMESTAMP",
+        "nullable": false,
+        "description": "Account creation timestamp"
+      },
+      {
+        "fieldPath": "updated_at",
+        "type": "TIMESTAMP",
+        "nullable": false,
+        "description": "Last update timestamp"
+      }
+    ],
+    "primaryKeys": ["user_id"],
+    "foreignKeys": [],
+    "customProperties": {
+      "schema_version": "2.1",
+      "last_modified": "2024-01-15T13:30:00Z",
+      "created_by": "data_engineer"
+    }
+  }
+}

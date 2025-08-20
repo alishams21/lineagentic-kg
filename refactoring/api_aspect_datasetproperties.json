@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "source": "rest_api",
+    "endpoint": "/api/v1/aspects/datasetProperties",
+    "timestamp": "2024-01-15T13:00:00Z",
+    "request_id": "req_22222"
+  },
+  "aspect_name": "datasetProperties",
+  "aspect_type": "versioned",
+  "entity_type": "Dataset",
+  "entity_key": {
+    "platform": "postgresql",
+    "name": "user_profiles",
+    "env": "PROD"
+  },
+  "payload": {
+    "description": "User profile data containing personal information and preferences",
+    "customProperties": {
+      "retention_days": 730,
+      "sensitivity_level": "high",
+      "business_owner": "product_team",
+      "data_classification": "PII"
+    },
+    "tags": ["user", "profile", "pii", "product"],
+    "externalUrl": "https://datahub.company.com/datasets/user_profiles"
+  }
+}

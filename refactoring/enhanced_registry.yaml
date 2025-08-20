@@ -330,82 +330,6 @@ entities:
       ownership: versioned
       globalTags: versioned
       datasetProfile: timeseries
-    relationships:
-      - type: HAS_COLUMN
-        target: Column
-        direction: outgoing
-        # Relationship creation parameters for independent ingestion
-        entity_creation:
-          source_entity:
-            entity_type: "Dataset"
-            urn_generator: "dataset"
-            required_params: ["platform", "name"]
-            optional_params: ["env"]
-          target_entity:
-            entity_type: "Column"
-            urn_generator: "column"
-            required_params: ["dataset_urn", "field_path"]
-            optional_params: []
-      - type: TAGGED
-        target: Tag
-        direction: outgoing
-        properties: ["source"]
-        entity_creation:
-          source_entity:
-            entity_type: "Dataset"
-            urn_generator: "dataset"
-            required_params: ["platform", "name"]
-            optional_params: ["env"]
-          target_entity:
-            entity_type: "Tag"
-            urn_generator: "tag"
-            required_params: ["key"]
-            optional_params: ["value"]
-      - type: UPSTREAM_OF
-        target: Dataset
-        direction: outgoing
-        properties: ["via"]
-        entity_creation:
-          source_entity:
-            entity_type: "Dataset"
-            urn_generator: "dataset"
-            required_params: ["platform", "name"]
-            optional_params: ["env"]
-          target_entity:
-            entity_type: "Dataset"
-            urn_generator: "dataset"
-            required_params: ["platform", "name"]
-            optional_params: ["env"]
-      - type: OWNS
-        target: CorpUser
-        direction: incoming
-        properties: ["via"]
-        entity_creation:
-          source_entity:
-            entity_type: "CorpUser"
-            urn_generator: "corpUser"
-            required_params: ["username"]
-            optional_params: []
-          target_entity:
-            entity_type: "Dataset"
-            urn_generator: "dataset"
-            required_params: ["platform", "name"]
-            optional_params: ["env"]
-      - type: OWNS
-        target: CorpGroup
-        direction: incoming
-        properties: ["via"]
-        entity_creation:
-          source_entity:
-            entity_type: "CorpGroup"
-            urn_generator: "corpGroup"
-            required_params: ["name"]
-            optional_params: []
-          target_entity:
-            entity_type: "Dataset"
-            urn_generator: "dataset"
-            required_params: ["platform", "name"]
-            optional_params: ["env"]
 
   DataFlow:
     key: dataFlowKey
@@ -418,21 +342,6 @@ entities:
       - env
     aspects:
       dataFlowInfo: versioned
-    relationships:
-      - type: HAS_JOB
-        target: DataJob
-        direction: outgoing
-        entity_creation:
-          source_entity:
-            entity_type: "DataFlow"
-            urn_generator: "dataFlow"
-            required_params: ["platform", "flow_id"]
-            optional_params: ["env"]
-          target_entity:
-            entity_type: "DataJob"
-            urn_generator: "dataJob"
-            required_params: ["flow_urn", "job_name"]
-            optional_params: []
 
   DataJob:
     key: dataJobKey
@@ -449,65 +358,6 @@ entities:
       ownership: versioned
       dataJobInputOutput: versioned
       dataJobRun: timeseries
-    relationships:
-      - type: CONSUMES
-        target: Dataset
-        direction: outgoing
-        entity_creation:
-          source_entity:
-            entity_type: "DataJob"
-            urn_generator: "dataJob"
-            required_params: ["flow_urn", "job_name"]
-            optional_params: []
-          target_entity:
-            entity_type: "Dataset"
-            urn_generator: "dataset"
-            required_params: ["platform", "name"]
-            optional_params: ["env"]
-      - type: PRODUCES
-        target: Dataset
-        direction: outgoing
-        entity_creation:
-          source_entity:
-            entity_type: "DataJob"
-            urn_generator: "dataJob"
-            required_params: ["flow_urn", "job_name"]
-            optional_params: []
-          target_entity:
-            entity_type: "Dataset"
-            urn_generator: "dataset"
-            required_params: ["platform", "name"]
-            optional_params: ["env"]
-      - type: OWNS
-        target: CorpUser
-        direction: incoming
-        properties: ["via"]
-        entity_creation:
-          source_entity:
-            entity_type: "CorpUser"
-            urn_generator: "corpUser"
-            required_params: ["username"]
-            optional_params: []
-          target_entity:
-            entity_type: "DataJob"
-            urn_generator: "dataJob"
-            required_params: ["flow_urn", "job_name"]
-            optional_params: []
-      - type: OWNS
-        target: CorpGroup
-        direction: incoming
-        properties: ["via"]
-        entity_creation:
-          source_entity:
-            entity_type: "CorpGroup"
-            urn_generator: "corpGroup"
-            required_params: ["name"]
-            optional_params: []
-          target_entity:
-            entity_type: "DataJob"
-            urn_generator: "dataJob"
-            required_params: ["flow_urn", "job_name"]
-            optional_params: []
 
   CorpUser:
     key: corpUserKey
@@ -517,37 +367,6 @@ entities:
     aspects:
       corpUserInfo: versioned
       ownership: versioned
-    relationships:
-      - type: OWNS
-        target: Dataset
-        direction: outgoing
-        properties: ["via"]
-        entity_creation:
-          source_entity:
-            entity_type: "CorpUser"
-            urn_generator: "corpUser"
-            required_params: ["username"]
-            optional_params: []
-          target_entity:
-            entity_type: "Dataset"
-            urn_generator: "dataset"
-            required_params: ["platform", "name"]
-            optional_params: ["env"]
-      - type: OWNS
-        target: DataJob
-        direction: outgoing
-        properties: ["via"]
-        entity_creation:
-          source_entity:
-            entity_type: "CorpUser"
-            urn_generator: "corpUser"
-            required_params: ["username"]
-            optional_params: []
-          target_entity:
-            entity_type: "DataJob"
-            urn_generator: "dataJob"
-            required_params: ["flow_urn", "job_name"]
-            optional_params: []
 
   CorpGroup:
     key: corpGroupKey
@@ -557,37 +376,6 @@ entities:
     aspects:
       corpGroupInfo: versioned
       ownership: versioned
-    relationships:
-      - type: OWNS
-        target: Dataset
-        direction: outgoing
-        properties: ["via"]
-        entity_creation:
-          source_entity:
-            entity_type: "CorpGroup"
-            urn_generator: "corpGroup"
-            required_params: ["name"]
-            optional_params: []
-          target_entity:
-            entity_type: "Dataset"
-            urn_generator: "dataset"
-            required_params: ["platform", "name"]
-            optional_params: ["env"]
-      - type: OWNS
-        target: DataJob
-        direction: outgoing
-        properties: ["via"]
-        entity_creation:
-          source_entity:
-            entity_type: "CorpGroup"
-            urn_generator: "corpGroup"
-            required_params: ["name"]
-            optional_params: []
-          target_entity:
-            entity_type: "DataJob"
-            urn_generator: "dataJob"
-            required_params: ["flow_urn", "job_name"]
-            optional_params: []
 
   Tag:
     key: tagKey
@@ -596,21 +384,6 @@ entities:
       - key
       - value
     aspects: {}
-    relationships:
-      - type: TAGGED
-        target: Dataset
-        direction: incoming
-        entity_creation:
-          source_entity:
-            entity_type: "Tag"
-            urn_generator: "tag"
-            required_params: ["key"]
-            optional_params: ["value"]
-          target_entity:
-            entity_type: "Dataset"
-            urn_generator: "dataset"
-            required_params: ["platform", "name"]
-            optional_params: ["env"]
 
   Column:
     key: columnKey
@@ -621,22 +394,6 @@ entities:
     aspects:
       columnProperties: versioned
       transformation: versioned
-    relationships:
-      - type: DERIVES_FROM
-        target: Column
-        direction: outgoing
-        properties: ["type", "subtype", "description", "transformation", "source_dataset", "target_dataset"]
-        entity_creation:
-          source_entity:
-            entity_type: "Column"
-            urn_generator: "column"
-            required_params: ["dataset_urn", "field_path"]
-            optional_params: []
-          target_entity:
-            entity_type: "Column"
-            urn_generator: "column"
-            required_params: ["dataset_urn", "field_path"]
-            optional_params: []
 
 # Aspect Types
 aspect_types:
@@ -649,3 +406,151 @@ aspect_types:
     base_class: "TimeSeries"
     properties: ["id", "name", "ts", "kind", "json", "createdAt"]
     query_pattern: "MATCH (e:{entity_label} {{urn:$urn}})-[:HAS_ASPECT {{name:$an}}]->(a:Aspect:TimeSeries)"
+
+# Aspect-Driven Relationship Rules
+aspect_relationships:
+  ownership:
+    description: "Creates OWNS relationships from ownership aspect data"
+    rules:
+      - entity_type: "Dataset"
+        relationship_type: "OWNS"
+        source_entity: "CorpUser"
+        target_entity: "Dataset"
+        direction: "incoming"
+        field_mapping:
+          source_field: "owners[].owner"
+          source_entity_type: "CorpUser"
+          source_urn_field: "username"
+          target_entity_type: "Dataset"
+          target_urn_field: "urn"
+      - entity_type: "Dataset"
+        relationship_type: "OWNS"
+        source_entity: "CorpGroup"
+        target_entity: "Dataset"
+        direction: "incoming"
+        field_mapping:
+          source_field: "owners[].owner"
+          source_entity_type: "CorpGroup"
+          source_urn_field: "name"
+          target_entity_type: "Dataset"
+          target_urn_field: "urn"
+      - entity_type: "DataJob"
+        relationship_type: "OWNS"
+        source_entity: "CorpUser"
+        target_entity: "DataJob"
+        direction: "incoming"
+        field_mapping:
+          source_field: "owners[].owner"
+          source_entity_type: "CorpUser"
+          source_urn_field: "username"
+          target_entity_type: "DataJob"
+          target_urn_field: "urn"
+      - entity_type: "DataJob"
+        relationship_type: "OWNS"
+        source_entity: "CorpGroup"
+        target_entity: "DataJob"
+        direction: "incoming"
+        field_mapping:
+          source_field: "owners[].owner"
+          source_entity_type: "CorpGroup"
+          source_urn_field: "name"
+          target_entity_type: "DataJob"
+          target_urn_field: "urn"
+
+  globalTags:
+    description: "Creates TAGGED relationships from globalTags aspect data"
+    rules:
+      - entity_type: "Dataset"
+        relationship_type: "TAGGED"
+        source_entity: "Dataset"
+        target_entity: "Tag"
+        direction: "outgoing"
+        field_mapping:
+          source_field: "tags[].tag"
+          source_entity_type: "Dataset"
+          source_urn_field: "urn"
+          target_entity_type: "Tag"
+          target_urn_field: "key"
+
+  transformation:
+    description: "Creates DERIVES_FROM and UPSTREAM_OF relationships from transformation aspect data"
+    rules:
+      - entity_type: "Column"
+        relationship_type: "DERIVES_FROM"
+        source_entity: "Column"
+        target_entity: "Column"
+        direction: "outgoing"
+        field_mapping:
+          source_field: "inputColumns[]"
+          source_entity_type: "Column"
+          source_urn_field: "urn"
+          target_entity_type: "Column"
+          target_urn_field: "urn"
+          source_urn_template: "{sourceDataset}#{source_field}"
+          target_urn_template: "{targetDataset}#{field_path}"
+        additional_relationships:
+          - relationship_type: "UPSTREAM_OF"
+            source_entity: "Dataset"
+            target_entity: "Dataset"
+            direction: "outgoing"
+            field_mapping:
+              source_field: "sourceDataset"
+              target_field: "targetDataset"
+
+  schemaMetadata:
+    description: "Creates HAS_COLUMN relationships from schemaMetadata aspect data"
+    rules:
+      - entity_type: "Dataset"
+        relationship_type: "HAS_COLUMN"
+        source_entity: "Dataset"
+        target_entity: "Column"
+        direction: "outgoing"
+        field_mapping:
+          source_field: "fields[].fieldPath"
+          source_entity_type: "Dataset"
+          source_urn_field: "urn"
+          target_entity_type: "Column"
+          target_urn_field: "urn"
+          target_urn_template: "{source_urn}#{source_field}"
+
+  dataJobInputOutput:
+    description: "Creates CONSUMES and PRODUCES relationships from dataJobInputOutput aspect data"
+    rules:
+      - entity_type: "DataJob"
+        relationship_type: "CONSUMES"
+        source_entity: "DataJob"
+        target_entity: "Dataset"
+        direction: "outgoing"
+        field_mapping:
+          source_field: "inputs[]"
+          source_entity_type: "DataJob"
+          source_urn_field: "urn"
+          target_entity_type: "Dataset"
+          target_urn_field: "urn"
+      - entity_type: "DataJob"
+        relationship_type: "PRODUCES"
+        source_entity: "DataJob"
+        target_entity: "Dataset"
+        direction: "outgoing"
+        field_mapping:
+          source_field: "outputs[]"
+          source_entity_type: "DataJob"
+          source_urn_field: "urn"
+          target_entity_type: "Dataset"
+          target_urn_field: "urn"
+
+  dataFlowInfo:
+    description: "Creates HAS_JOB relationships from dataFlowInfo aspect data"
+    rules:
+      - entity_type: "DataFlow"
+        relationship_type: "HAS_JOB"
+        source_entity: "DataFlow"
+        target_entity: "DataJob"
+        direction: "outgoing"
+        field_mapping:
+          source_field: "jobs[]"
+          source_entity_type: "DataFlow"
+          source_urn_field: "urn"
+          target_entity_type: "DataJob"
+          target_urn_field: "urn"
+          target_urn_template: "{source_urn}#{job_name}"
