@@ -104,17 +104,17 @@ make_request "POST" "/entities/DataFlow" '{
   "env": "PROD",
   "additional_properties": {
     "description": "Test data flow for API examples",
-    "schedule": "0 2 * * *"
+    "owner": "data-team"
   }
 }' "DataFlow Entity Upsert"
 
 # 3. DataJob Entity
 make_request "POST" "/entities/DataJob" '{
-  "flow_urn": "urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD)",
+  "flow_urn": "urn:li:dataFlow:(airflow,test_flow_001,PROD)",
   "job_name": "test_job_001",
   "additional_properties": {
     "description": "Test data job for API examples",
-    "priority": "high"
+    "owner": "data-team"
   }
 }' "DataJob Entity Upsert"
 
@@ -122,8 +122,8 @@ make_request "POST" "/entities/DataJob" '{
 make_request "POST" "/entities/CorpUser" '{
   "username": "test.user",
   "additional_properties": {
-    "department": "engineering",
-    "location": "san-francisco"
+    "description": "Test user for API examples",
+    "department": "Engineering"
   }
 }' "CorpUser Entity Upsert"
 
@@ -141,7 +141,7 @@ make_request "POST" "/entities/Tag" '{
   "key": "data-quality",
   "value": "high",
   "additional_properties": {
-    "description": "High data quality tag",
+    "description": "Data quality tag",
     "category": "quality"
   }
 }' "Tag Entity Upsert"
@@ -163,7 +163,6 @@ echo "======================================"
 # 1. CorpUserInfo Aspect
 make_request "POST" "/aspects/corpUserInfo" '{
   "entity_label": "CorpUser",
-  "entity_urn": "urn:li:corpuser:test.user",
   "entity_params": {
     "username": "test.user"
   },
@@ -179,7 +178,6 @@ make_request "POST" "/aspects/corpUserInfo" '{
 # 2. CorpGroupInfo Aspect
 make_request "POST" "/aspects/corpGroupInfo" '{
   "entity_label": "CorpGroup",
-  "entity_urn": "urn:li:corpgroup:data-engineers",
   "entity_params": {
     "name": "data-engineers"
   },
@@ -192,7 +190,6 @@ make_request "POST" "/aspects/corpGroupInfo" '{
 # 3. DatasetProperties Aspect
 make_request "POST" "/aspects/datasetProperties" '{
   "entity_label": "Dataset",
-  "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:mysql,test_db.test_table,PROD)",
   "entity_params": {
     "platform": "mysql",
     "name": "test_db.test_table"
@@ -209,7 +206,6 @@ make_request "POST" "/aspects/datasetProperties" '{
 # 4. SchemaMetadata Aspect
 make_request "POST" "/aspects/schemaMetadata" '{
   "entity_label": "Dataset",
-  "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:mysql,test_db.test_table,PROD)",
   "entity_params": {
     "platform": "mysql",
     "name": "test_db.test_table"
@@ -238,7 +234,6 @@ make_request "POST" "/aspects/schemaMetadata" '{
 # 5. Ownership Aspect
 make_request "POST" "/aspects/ownership" '{
   "entity_label": "Dataset",
-  "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:mysql,test_db.test_table,PROD)",
   "entity_params": {
     "platform": "mysql",
     "name": "test_db.test_table"
@@ -262,7 +257,6 @@ make_request "POST" "/aspects/ownership" '{
 # 6. GlobalTags Aspect
 make_request "POST" "/aspects/globalTags" '{
   "entity_label": "Dataset",
-  "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:mysql,test_db.test_table,PROD)",
   "entity_params": {
     "platform": "mysql",
     "name": "test_db.test_table"
@@ -282,7 +276,6 @@ make_request "POST" "/aspects/globalTags" '{
 # 7. DatasetProfile Aspect
 make_request "POST" "/aspects/datasetProfile" '{
   "entity_label": "Dataset",
-  "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:mysql,test_db.test_table,PROD)",
   "entity_params": {
     "platform": "mysql",
     "name": "test_db.test_table"
@@ -297,7 +290,6 @@ make_request "POST" "/aspects/datasetProfile" '{
 # 8. DataFlowInfo Aspect
 make_request "POST" "/aspects/dataFlowInfo" '{
   "entity_label": "DataFlow",
-  "entity_urn": "urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD)",
   "entity_params": {
     "platform": "airflow",
     "flow_id": "test_flow_001"
@@ -311,9 +303,8 @@ make_request "POST" "/aspects/dataFlowInfo" '{
 # 9. DataJobInfo Aspect
 make_request "POST" "/aspects/dataJobInfo" '{
   "entity_label": "DataJob",
-  "entity_urn": "urn:li:dataJob:(urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD),test_job_001)",
   "entity_params": {
-    "flow_urn": "urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD)",
+    "flow_urn": "urn:li:dataFlow:(airflow,test_flow_001,PROD)",
     "job_name": "test_job_001"
   },
   "name": "Test Job 001",
@@ -328,9 +319,8 @@ make_request "POST" "/aspects/dataJobInfo" '{
 # 10. Documentation Aspect
 make_request "POST" "/aspects/documentation" '{
   "entity_label": "DataJob",
-  "entity_urn": "urn:li:dataJob:(urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD),test_job_001)",
   "entity_params": {
-    "flow_urn": "urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD)",
+    "flow_urn": "urn:li:dataFlow:(airflow,test_flow_001,PROD)",
     "job_name": "test_job_001"
   },
   "description": "Documentation for test job",
@@ -341,9 +331,8 @@ make_request "POST" "/aspects/documentation" '{
 # 11. SourceCodeLocation Aspect
 make_request "POST" "/aspects/sourceCodeLocation" '{
   "entity_label": "DataJob",
-  "entity_urn": "urn:li:dataJob:(urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD),test_job_001)",
   "entity_params": {
-    "flow_urn": "urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD)",
+    "flow_urn": "urn:li:dataFlow:(airflow,test_flow_001,PROD)",
     "job_name": "test_job_001"
   },
   "type": "GITHUB",
@@ -356,9 +345,8 @@ make_request "POST" "/aspects/sourceCodeLocation" '{
 # 12. SourceCode Aspect
 make_request "POST" "/aspects/sourceCode" '{
   "entity_label": "DataJob",
-  "entity_urn": "urn:li:dataJob:(urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD),test_job_001)",
   "entity_params": {
-    "flow_urn": "urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD)",
+    "flow_urn": "urn:li:dataFlow:(airflow,test_flow_001,PROD)",
     "job_name": "test_job_001"
   },
   "language": "python",
@@ -369,9 +357,8 @@ make_request "POST" "/aspects/sourceCode" '{
 # 13. EnvironmentProperties Aspect
 make_request "POST" "/aspects/environmentProperties" '{
   "entity_label": "DataJob",
-  "entity_urn": "urn:li:dataJob:(urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD),test_job_001)",
   "entity_params": {
-    "flow_urn": "urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD)",
+    "flow_urn": "urn:li:dataFlow:(airflow,test_flow_001,PROD)",
     "job_name": "test_job_001"
   },
   "env": "PROD",
@@ -385,9 +372,8 @@ make_request "POST" "/aspects/environmentProperties" '{
 # 14. DataJobInputOutput Aspect
 make_request "POST" "/aspects/dataJobInputOutput" '{
   "entity_label": "DataJob",
-  "entity_urn": "urn:li:dataJob:(urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD),test_job_001)",
   "entity_params": {
-    "flow_urn": "urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD)",
+    "flow_urn": "urn:li:dataFlow:(airflow,test_flow_001,PROD)",
     "job_name": "test_job_001"
   },
   "inputs": [
@@ -401,14 +387,13 @@ make_request "POST" "/aspects/dataJobInputOutput" '{
 # 15. DataJobRun Aspect
 make_request "POST" "/aspects/dataJobRun" '{
   "entity_label": "DataJob",
-  "entity_urn": "urn:li:dataJob:(urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD),test_job_001)",
   "entity_params": {
-    "flow_urn": "urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD)",
+    "flow_urn": "urn:li:dataFlow:(airflow,test_flow_001,PROD)",
     "job_name": "test_job_001"
   },
   "eventType": "START",
   "runId": "test_run_001",
-  "parent": "urn:li:dataFlow:(urn:li:dataPlatform:airflow,test_flow_001,PROD)",
+  "parent": "urn:li:dataFlow:(airflow,test_flow_001,PROD)",
   "status": "RUNNING",
   "startTime": 1640995200000,
   "endTime": null
@@ -417,7 +402,6 @@ make_request "POST" "/aspects/dataJobRun" '{
 # 16. ColumnProperties Aspect
 make_request "POST" "/aspects/columnProperties" '{
   "entity_label": "Column",
-  "entity_urn": "urn:li:column:(urn:li:dataset:(urn:li:dataPlatform:mysql,test_db.test_table,PROD),id)",
   "entity_params": {
     "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:mysql,test_db.test_table,PROD)",
     "field_path": "id"
@@ -431,7 +415,6 @@ make_request "POST" "/aspects/columnProperties" '{
 # 17. Transformation Aspect
 make_request "POST" "/aspects/transformation" '{
   "entity_label": "Column",
-  "entity_urn": "urn:li:column:(urn:li:dataset:(urn:li:dataPlatform:mysql,test_db.test_table,PROD),id)",
   "entity_params": {
     "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:mysql,test_db.test_table,PROD)",
     "field_path": "id"

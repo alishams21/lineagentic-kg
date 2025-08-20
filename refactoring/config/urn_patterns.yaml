@@ -24,7 +24,7 @@ urn_patterns:
   dataJob:
     template: "{prefix}:dataJob:({flow_urn},{job_name})"
     parameters: ["flow_urn", "job_name"]
-    sanitize: ["job_name"]
+    sanitize: ["job_name"]  # Don't sanitize flow_urn as it's already a URN
   
   corpUser:
     template: "{prefix}:corpuser:{username}"
@@ -48,6 +48,6 @@ urn_patterns:
         when_value_absent: ""
   
   column:
-    template: "{dataset_urn}#{field_path}"
+    template: "{prefix}:column:({dataset_urn},{field_path})"  # Fixed template format
     parameters: ["dataset_urn", "field_path"]
-    sanitize: ["field_path"]
+    sanitize: ["field_path"]  # Don't sanitize dataset_urn as it's already a URN

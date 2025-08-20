@@ -202,16 +202,17 @@ class URNGenerator:
                                 field_name = ''.join(['_'+c.lower() if c.isupper() else c for c in item]).lstrip('_') + '_urn'
                                 context[field_name] = generators[item](**context)
                 else:
+                    # This is the sanitize list - only apply sanitization to fields specified here
                     for item in field_value:
                         if isinstance(item, str):
                             if item in context and context[item]:
                                 if isinstance(context[item], str):
-                                    for util_name, util_func in utils.items():
+                                    # Only apply sanitize_id utility function to sanitize fields
+                                    if 'sanitize_id' in utils:
                                         try:
-                                            context[item] = util_func(context[item])
-                                            break
+                                            context[item] = utils['sanitize_id'](context[item])
                                         except:
-                                            continue
+                                            pass  # Skip if sanitization fails
                             context[f'list_{field_name}'] = field_value
             
             elif isinstance(field_value, str):

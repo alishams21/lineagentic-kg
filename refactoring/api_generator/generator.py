@@ -26,6 +26,24 @@ class APIGenerator:
         # Create output directory
         self.output_dir.mkdir(exist_ok=True)
         
+        # Create a temporary writer instance to get the actual method names
+        self._temp_writer = None
+        
+    def _get_temp_writer(self):
+        """Get a temporary writer instance to inspect available methods"""
+        if self._temp_writer is None:
+            # Create a temporary writer with dummy connection
+            self._temp_writer = self.factory.create_writer("bolt://localhost:7687", "neo4j", "password")
+        return self._temp_writer
+    
+    def _get_method_name_for_entity(self, entity_name: str, operation: str) -> str:
+        """Get method name for entity operation using the same logic as Neo4jWriterGenerator"""
+        return f"{operation}_{entity_name.lower()}"
+    
+    def _get_method_name_for_aspect(self, aspect_name: str, operation: str) -> str:
+        """Get method name for aspect operation using the same logic as Neo4jWriterGenerator"""
+        return f"{operation}_{aspect_name.lower()}_aspect"
+        
     def generate_all(self):
         """Generate all FastAPI files"""
         print(" Generating FastAPI files from RegistryFactory...")
@@ -41,10 +59,6 @@ class APIGenerator:
         self._generate_readme()
         
         print(f"✅ Generated FastAPI files in: {self.output_dir}")
-    
-
-        
-
     
     def _generate_models(self):
         """Generate Pydantic models dynamically from registry configuration"""
@@ -185,6 +199,7 @@ class {aspect_name.title()}AspectDeleteRequest(BaseModel):
 '''
             
             # Generate response model
+            payload_type = "List[Dict[str, Any]]" if aspect_type == 'timeseries' else "Dict[str, Any]"
             models_content += f'''
 
 class {aspect_name.title()}AspectResponse(BaseModel):
@@ -192,7 +207,7 @@ class {aspect_name.title()}AspectResponse(BaseModel):
     entity_label: str = Field(..., description="Entity label")
     entity_urn: str = Field(..., description="Entity URN")
     aspect_name: str = Field(..., description="Aspect name")
-    payload: Dict[str, Any] = Field(..., description="Aspect payload")
+    payload: {payload_type} = Field(..., description="Aspect payload")
 '''
             
             if aspect_type == 'versioned':
@@ -278,6 +293,7 @@ async def health_check():
         # Generate entity GET routes dynamically from registry
         entities = self.factory.registry.get('entities', {})
         for entity_name in sorted(entities.keys()):
+            method_name = self._get_method_name_for_entity(entity_name, "get")
             routes_content += f'''
 @router.get("/entities/{entity_name}/{{urn}}", response_model=models.{entity_name}Response)
 async def get_{entity_name}(urn: str):
@@ -286,7 +302,7 @@ async def get_{entity_name}(urn: str):
         factory = factory_wrapper.get_factory_instance()
         writer = factory_wrapper.get_writer_instance()
         
-        method_name = f"get_{entity_name.lower()}"
+        method_name = "{method_name}"
         if not hasattr(writer, method_name):
             raise HTTPException(status_code=400, detail=f"Entity type '{entity_name}' not found")
         
@@ -310,7 +326,13 @@ async def get_{entity_name}(urn: str):
         # Generate aspect GET routes dynamically from registry
         aspects = self.factory.registry.get('aspects', {})
         for aspect_name in sorted(aspects.keys()):
-            routes_content += f'''
+            aspect_config = aspects[aspect_name]
+            aspect_type = aspect_config.get('type', 'versioned')
+            method_name = self._get_method_name_for_aspect(aspect_name, "get")
+            
+            if aspect_type == 'timeseries':
+                # Timeseries aspects need limit parameter and return list
+                routes_content += f'''
 @router.get("/aspects/{aspect_name}/{{entity_label}}/{{entity_urn}}", response_model=models.{aspect_name.title()}AspectResponse)
 async def get_{aspect_name}_aspect(entity_label: str, entity_urn: str, limit: int = 100):
     """Get {aspect_name} aspect for entity"""
@@ -318,9 +340,11 @@ async def get_{aspect_name}_aspect(entity_label: str, entity_urn: str, limit: in
         factory = factory_wrapper.get_factory_instance()
         writer = factory_wrapper.get_writer_instance()
         
-        method_name = f"get_{aspect_name.lower()}_aspect"
+        method_name = "{method_name}"
         if not hasattr(writer, method_name):
-            raise HTTPException(status_code=400, detail=f"Aspect '{aspect_name}' not found")
+            # Debug: list available methods
+            available_methods = [m for m in dir(writer) if not m.startswith('_') and 'aspect' in m]
+            raise HTTPException(status_code=400, detail=f"Aspect '{aspect_name}' not found. Available aspect methods: {{available_methods}}")
         
         method = getattr(writer, method_name)
         result = method(entity_label, entity_urn, limit)
@@ -333,8 +357,41 @@ async def get_{aspect_name}_aspect(entity_label: str, entity_urn: str, limit: in
             entity_urn=entity_urn,
             aspect_name="{aspect_name}",
             payload=result,
-            version=result.get('version') if isinstance(result, dict) else None,
-            timestamp_ms=result.get('timestamp_ms') if isinstance(result, dict) else None
+            timestamp_ms=result[0].get('timestamp_ms') if result and len(result) > 0 else None
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+'''
+            else:
+                # Versioned aspects don't need limit parameter and return dict
+                routes_content += f'''
+@router.get("/aspects/{aspect_name}/{{entity_label}}/{{entity_urn}}", response_model=models.{aspect_name.title()}AspectResponse)
+async def get_{aspect_name}_aspect(entity_label: str, entity_urn: str):
+    """Get {aspect_name} aspect for entity"""
+    try:
+        factory = factory_wrapper.get_factory_instance()
+        writer = factory_wrapper.get_writer_instance()
+        
+        method_name = "{method_name}"
+        if not hasattr(writer, method_name):
+            # Debug: list available methods
+            available_methods = [m for m in dir(writer) if not m.startswith('_') and 'aspect' in m]
+            raise HTTPException(status_code=400, detail=f"Aspect '{aspect_name}' not found. Available aspect methods: {{available_methods}}")
+        
+        method = getattr(writer, method_name)
+        result = method(entity_label, entity_urn)
+        
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"{aspect_name} aspect not found")
+        
+        return models.{aspect_name.title()}AspectResponse(
+            entity_label=entity_label,
+            entity_urn=entity_urn,
+            aspect_name="{aspect_name}",
+            payload=result,
+            version=result.get('version') if isinstance(result, dict) else None
         )
     except HTTPException:
         raise
@@ -370,6 +427,7 @@ router = APIRouter(prefix="/api/v1", tags=["UPSERT Operations"])
         # Generate entity UPSERT routes dynamically from registry
         entities = self.factory.registry.get('entities', {})
         for entity_name in sorted(entities.keys()):
+            method_name = self._get_method_name_for_entity(entity_name, "upsert")
             routes_content += f'''
 @router.post("/entities/{entity_name}", response_model=models.{entity_name}Response)
 async def upsert_{entity_name}(request: models.{entity_name}UpsertRequest):
@@ -378,7 +436,7 @@ async def upsert_{entity_name}(request: models.{entity_name}UpsertRequest):
         factory = factory_wrapper.get_factory_instance()
         writer = factory_wrapper.get_writer_instance()
         
-        method_name = f"upsert_{entity_name.lower()}"
+        method_name = "{method_name}"
         if not hasattr(writer, method_name):
             raise HTTPException(status_code=400, detail=f"Entity type '{entity_name}' not found")
         
@@ -396,7 +454,8 @@ async def upsert_{entity_name}(request: models.{entity_name}UpsertRequest):
         result_urn = method(**params)
         
         # Get the created/updated entity
-        get_method = getattr(writer, f"get_{entity_name.lower()}")
+        get_method_name = "{self._get_method_name_for_entity(entity_name, 'get')}"
+        get_method = getattr(writer, get_method_name)
         entity_data = get_method(result_urn)
         
         return models.{entity_name}Response(
@@ -411,6 +470,7 @@ async def upsert_{entity_name}(request: models.{entity_name}UpsertRequest):
         # Generate aspect UPSERT routes dynamically from registry
         aspects = self.factory.registry.get('aspects', {})
         for aspect_name in sorted(aspects.keys()):
+            method_name = self._get_method_name_for_aspect(aspect_name, "upsert")
             routes_content += f'''
 @router.post("/aspects/{aspect_name}", response_model=models.{aspect_name.title()}AspectResponse)
 async def upsert_{aspect_name}_aspect(request: models.{aspect_name.title()}AspectUpsertRequest):
@@ -419,7 +479,7 @@ async def upsert_{aspect_name}_aspect(request: models.{aspect_name.title()}Aspec
         factory = factory_wrapper.get_factory_instance()
         writer = factory_wrapper.get_writer_instance()
         
-        method_name = f"upsert_{aspect_name.lower()}_aspect"
+        method_name = "{method_name}"
         if not hasattr(writer, method_name):
             raise HTTPException(status_code=400, detail=f"Aspect '{aspect_name}' not found")
         
@@ -496,6 +556,7 @@ router = APIRouter(prefix="/api/v1", tags=["DELETE Operations"])
         # Generate entity DELETE routes dynamically from registry
         entities = self.factory.registry.get('entities', {})
         for entity_name in sorted(entities.keys()):
+            method_name = self._get_method_name_for_entity(entity_name, "delete")
             routes_content += f'''
 @router.delete("/entities/{entity_name}/{{urn}}")
 async def delete_{entity_name}(urn: str):
@@ -504,7 +565,7 @@ async def delete_{entity_name}(urn: str):
         factory = factory_wrapper.get_factory_instance()
         writer = factory_wrapper.get_writer_instance()
         
-        method_name = f"delete_{entity_name.lower()}"
+        method_name = "{method_name}"
         if not hasattr(writer, method_name):
             raise HTTPException(status_code=400, detail=f"Entity type '{entity_name}' not found")
         
@@ -519,6 +580,7 @@ async def delete_{entity_name}(urn: str):
         # Generate aspect DELETE routes dynamically from registry
         aspects = self.factory.registry.get('aspects', {})
         for aspect_name in sorted(aspects.keys()):
+            method_name = self._get_method_name_for_aspect(aspect_name, "delete")
             routes_content += f'''
 @router.delete("/aspects/{aspect_name}/{{entity_label}}/{{entity_urn}}")
 async def delete_{aspect_name}_aspect(entity_label: str, entity_urn: str):
@@ -527,7 +589,7 @@ async def delete_{aspect_name}_aspect(entity_label: str, entity_urn: str):
         factory = factory_wrapper.get_factory_instance()
         writer = factory_wrapper.get_writer_instance()
         
-        method_name = f"delete_{aspect_name.lower()}_aspect"
+        method_name = "{method_name}"
         if not hasattr(writer, method_name):
             raise HTTPException(status_code=400, detail=f"Aspect '{aspect_name}' not found")
         
