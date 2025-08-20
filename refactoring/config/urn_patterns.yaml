@@ -1,0 +1,53 @@
+# URN Generation Patterns
+# This file contains URN generation patterns for different entity types
+
+# URN Generation Patterns
+urn_patterns:
+  dataPlatform:
+    template: "{prefix}:dataPlatform:{platform}"
+    parameters: ["platform"]
+    sanitize: ["platform"]
+  
+  dataset:
+    template: "{prefix}:dataset:({data_platform_urn},{name},{env})"
+    parameters: ["platform", "name", "env"]
+    defaults: {"env": "PROD"}
+    dependencies: ["dataPlatform"]
+    sanitize: ["name"]
+  
+  dataFlow:
+    template: "{prefix}:dataFlow:({platform},{flow_id},{env})"
+    parameters: ["platform", "flow_id", "env"]
+    defaults: {"env": "PROD"}
+    sanitize: ["platform", "flow_id"]
+  
+  dataJob:
+    template: "{prefix}:dataJob:({flow_urn},{job_name})"
+    parameters: ["flow_urn", "job_name"]
+    sanitize: ["job_name"]
+  
+  corpUser:
+    template: "{prefix}:corpuser:{username}"
+    parameters: ["username"]
+    sanitize: ["username"]
+    transformations: {"username": "email_to_username"}
+  
+  corpGroup:
+    template: "{prefix}:corpGroup:{groupname}"
+    parameters: ["groupname"]
+    sanitize: ["groupname"]
+  
+  tag:
+    template: "{prefix}:tag:{key}{value_suffix}"
+    parameters: ["key", "value"]
+    sanitize: ["key", "value"]
+    conditional_logic: "value_suffix"
+    conditional_rules:
+      value_suffix:
+        when_value_present: "={value}"
+        when_value_absent: ""
+  
+  column:
+    template: "{dataset_urn}#{field_path}"
+    parameters: ["dataset_urn", "field_path"]
+    sanitize: ["field_path"]

@@ -1,0 +1,11 @@
+# Main Registry Configuration
+# This file includes all modular configuration files
+
+# Include modular configuration files
+includes:
+  - "core.yaml"
+  - "utilities.yaml"
+  - "urn_patterns.yaml"
+  - "entities.yaml"
+  - "aspects.yaml"
+  - "relationships.yaml"
