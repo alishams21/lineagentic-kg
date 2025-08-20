@@ -33,9 +33,9 @@ urn_patterns:
     transformations: {"username": "email_to_username"}
   
   corpGroup:
-    template: "{prefix}:corpGroup:{groupname}"
-    parameters: ["groupname"]
-    sanitize: ["groupname"]
+    template: "{prefix}:corpGroup:{name}"
+    parameters: ["name"]
+    sanitize: ["name"]
   
   tag:
     template: "{prefix}:tag:{key}{value_suffix}"

@@ -539,7 +539,7 @@ class Neo4jWriterGenerator:
                         if source_urn_field == 'username':
                             urn_params['username'] = field_value
                         elif source_urn_field == 'name':
-                            urn_params['groupname'] = field_value
+                            urn_params['name'] = field_value
                         elif source_urn_field == rule_config.get('urn_field_name', 'urn'):
                             source_urn_template = field_mapping.get('source_urn_template')
                             if source_urn_template and 'sourceDataset' in source_urn_template:
