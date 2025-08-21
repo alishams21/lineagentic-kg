@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="https://raw.githubusercontent.com/lineagentic/lineagentic-catalog/main/images/lineagenticcatalog.jpg" alt="Lineagentic Logo" width="880" height="300">
+</div>
+
 # Lineagentic-Catalog
 
 Lineagentic-Catalog is more than just a data catalog—it's a graph-native metadata platform that turns simple YAML definitions into a fully operational, customizable, and governed data model. With extendability built in, automatic generation of REST APIs, automatic generation of CLI tooling it delivers a "batteries included" experience for modern data teams.
