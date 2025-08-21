@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registry System Flow Diagrams</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+            font-weight: 300;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .diagram-section {
+            margin-bottom: 50px;
+            padding: 30px;
+            border: 2px solid #e8f4f8;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .diagram-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+        .diagram-section h2 {
+            color: #34495e;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #3498db;
+            font-size: 1.8em;
+            font-weight: 500;
+        }
+        .diagram-section p {
+            color: #555;
+            margin-bottom: 25px;
+            line-height: 1.8;
+            font-size: 1.1em;
+        }
+        .diagram-image {
+            text-align: center;
+            margin: 25px 0;
+            position: relative;
+        }
+        .diagram-image img {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+        .diagram-image img:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+        .diagram-caption {
+            font-style: italic;
+            color: #7f8c8d;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 1em;
+            line-height: 1.5;
+        }
+        .zoom-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            z-index: 1000;
+            cursor: pointer;
+        }
+        .zoom-overlay img {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 95%;
+            max-height: 95%;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .close-zoom {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 2em;
+            cursor: pointer;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+        .close-zoom:hover {
+            background: rgba(0,0,0,0.8);
+        }
+
+        .toc {
+            background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #3498db;
+        }
+        .toc h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .toc ul {
+            list-style: none;
+            padding: 0;
+        }
+        .toc li {
+            margin: 8px 0;
+        }
+        .toc a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        .toc a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Registry System Flow Diagrams</h1>
+        
+        <div class="toc">
+            <h3>📋 Table of Contents</h3>
+            <ul>
+                <li><a href="#bootstrap">1. Bootstrap Phase: RegistryFactory Initialization</a></li>
+                <li><a href="#runtime">2. Runtime Phase: Using Generated Methods</a></li>
+                <li><a href="#config">3. Configuration Loading Flow</a></li>
+                <li><a href="#method">4. Method Generation Flow</a></li>
+                <li><a href="#architecture">5. Overall System Architecture</a></li>
+                <li><a href="#dataflow">6. Data Flow Overview</a></li>
+            </ul>
+        </div>
+        
+        <div class="diagram-section" id="bootstrap">
+            <h2>1. Bootstrap Phase: RegistryFactory Initialization</h2>
+            <p>This diagram shows the complete initialization flow from YAML configuration to generated class. It details each step: loading, validation, generation, and class creation.</p>
+            <div class="diagram-image">
+                <img src="images/01_bootstrap_phase.png" alt="Bootstrap Phase Diagram" onclick="openZoom(this.src)">
+                <div class="diagram-caption">Shows how RegistryFactory loads config, validates it, generates functions, and creates the final writer class</div>
+            </div>
+        </div>
+
+        <div class="diagram-section" id="runtime">
+            <h2>2. Runtime Phase: Using Generated Methods</h2>
+            <p>This diagram shows what happens when you actually use the generated methods. It demonstrates URN generation, database operations, and aspect processing.</p>
+            <div class="diagram-image">
+                <img src="images/02_runtime_phase.png" alt="Runtime Phase Diagram" onclick="openZoom(this.src)">
+                <div class="diagram-caption">Shows the flow when calling upsert_dataset() and add_aspect() methods</div>
+            </div>
+        </div>
+
+        <div class="diagram-section" id="config">
+            <h2>3. Configuration Loading Flow</h2>
+            <p>This diagram shows how all the YAML files are loaded and merged. It demonstrates the include mechanism and deep merging process.</p>
+            <div class="diagram-image">
+                <img src="images/03_config_loading.png" alt="Configuration Loading Diagram" onclick="openZoom(this.src)">
+                <div class="diagram-caption">Shows how RegistryLoader merges multiple YAML files into one configuration</div>
+            </div>
+        </div>
+
+        <div class="diagram-section" id="method">
+            <h2>4. Method Generation Flow</h2>
+            <p>This diagram shows how the dynamic methods are created from configuration. It demonstrates the loop that creates methods for each entity.</p>
+            <div class="diagram-image">
+                <img src="images/04_method_generation.png" alt="Method Generation Diagram" onclick="openZoom(this.src)">
+                <div class="diagram-caption">Shows how Neo4jWriterGenerator creates upsert_*, get_*, and delete_* methods dynamically</div>
+            </div>
+        </div>
+
+        <div class="diagram-section" id="architecture">
+            <h2>5. Overall System Architecture</h2>
+            <p>This diagram provides a high-level view of the entire system architecture, showing how all components interact.</p>
+            <div class="diagram-image">
+                <img src="images/05_system_architecture.png" alt="System Architecture Diagram" onclick="openZoom(this.src)">
+                <div class="diagram-caption">High-level view of the complete registry system architecture</div>
+            </div>
+        </div>
+
+        <div class="diagram-section" id="dataflow">
+            <h2>6. Data Flow Overview</h2>
+            <p>This diagram shows the overall data flow from configuration files to database operations.</p>
+            <div class="diagram-image">
+                <img src="images/06_data_flow.png" alt="Data Flow Diagram" onclick="openZoom(this.src)">
+                <div class="diagram-caption">Simplified view of how data flows through the system</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Zoom Overlay -->
+    <div class="zoom-overlay" id="zoomOverlay" onclick="closeZoom()">
+        <div class="close-zoom" onclick="closeZoom()">×</div>
+        <img id="zoomImage" src="" alt="Zoomed Diagram">
+    </div>
+
+    <script>
+        function openZoom(imageSrc) {
+            document.getElementById('zoomImage').src = imageSrc;
+            document.getElementById('zoomOverlay').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeZoom() {
+            document.getElementById('zoomOverlay').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Close zoom on escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeZoom();
+            }
+        });
+        
+        // Smooth scrolling for table of contents links
+        document.querySelectorAll('.toc a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

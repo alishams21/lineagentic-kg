@@ -1,0 +1,43 @@
+sequenceDiagram
+    autonumber
+    participant App as Your App
+    participant Writer as Neo4jMetadataWriter
+    participant URNGen as URN Generator
+    participant Neo4j as Neo4j Database
+    participant AspectProc as Aspect Processor
+    
+    App->>Writer: upsert_dataset(platform="mysql", name="users", env="PROD")
+    activate Writer
+    
+    Writer->>URNGen: dataset_urn_generator(platform, name, env)
+    activate URNGen
+    URNGen->>URNGen: apply template: "urn:li:dataset:(platform,name,env)"
+    URNGen->>URNGen: sanitize parameters
+    URNGen-->>Writer: "urn:li:dataset:(mysql,users,PROD)"
+    deactivate URNGen
+    
+    Writer->>Writer: filter properties (platform, name, env)
+    Writer->>Neo4j: MERGE (d:Dataset {urn: $urn}) SET d += $props
+    activate Neo4j
+    Neo4j-->>Writer: success
+    deactivate Neo4j
+    
+    Writer-->>App: "urn:li:dataset:(mysql,users,PROD)"
+    deactivate Writer
+    
+    App->>Writer: add_aspect(dataset_urn, "datasetProperties", props)
+    activate Writer
+    
+    Writer->>AspectProc: datasetProperties_processor(props)
+    activate AspectProc
+    AspectProc->>AspectProc: validate & enrich aspect data
+    AspectProc-->>Writer: processed_props
+    deactivate AspectProc
+    
+    Writer->>Neo4j: MERGE (d:Dataset {urn: $urn})<br/>MERGE (a:Aspect:Versioned {id: $aspect_id})<br/>MERGE (d)-[:HAS_ASPECT {name: "datasetProperties"}]->(a)
+    activate Neo4j
+    Neo4j-->>Writer: success
+    deactivate Neo4j
+    
+    Writer-->>App: success
+    deactivate Writer

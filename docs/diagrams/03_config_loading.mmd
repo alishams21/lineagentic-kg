@@ -1,0 +1,42 @@
+sequenceDiagram
+    autonumber
+    participant Loader as RegistryLoader
+    participant Main as main_registry.yaml
+    participant Entities as entities.yaml
+    participant URNs as urn_patterns.yaml
+    participant Aspects as aspects.yaml
+    participant Relationships as relationships.yaml
+    participant Utilities as utilities.yaml
+    
+    Loader->>Main: load_yaml_file()
+    activate Main
+    Main-->>Loader: {includes: ["entities.yaml", "urn_patterns.yaml", ...]}
+    deactivate Main
+    
+    Loader->>Entities: load_yaml_file()
+    activate Entities
+    Entities-->>Loader: {entities: {Dataset: {...}, DataFlow: {...}}}
+    deactivate Entities
+    
+    Loader->>URNs: load_yaml_file()
+    activate URNs
+    URNs-->>Loader: {urn_patterns: {dataset: {...}, dataflow: {...}}}
+    deactivate URNs
+    
+    Loader->>Aspects: load_yaml_file()
+    activate Aspects
+    Aspects-->>Loader: {aspects: {datasetProperties: {...}}}
+    deactivate Aspects
+    
+    Loader->>Relationships: load_yaml_file()
+    activate Relationships
+    Relationships-->>Loader: {aspect_relationships: {...}}
+    deactivate Relationships
+    
+    Loader->>Utilities: load_yaml_file()
+    activate Utilities
+    Utilities-->>Loader: {utility_functions: {...}}
+    deactivate Utilities
+    
+    Loader->>Loader: deep_merge(all_configs)
+    Loader-->>Loader: final_merged_config

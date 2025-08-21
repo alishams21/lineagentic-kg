@@ -1,125 +1,238 @@
+# Lineagentic-Catalog
 
-<div align="center">
-  <img src="images/logo2.jpg" alt="Lineagentic-catalog" width="880" height="300">
-</div>
+Lineagentic-Catalog is more than just a data catalog—it's a graph-native metadata platform that turns simple YAML definitions into a fully operational, customizable, and governed data model. With extendability built in, automatic generation of REST APIs, automatic generation of CLI tooling it delivers a "batteries included" experience for modern data teams.
 
-## Lineagentic-Catalog
+## Features
+- **Generic Metadata Model Generator**: Highly customizable metadata model that can be extended to support new entities, aspects, and relationships. 
+- **REST APIs Generator**: Generate FastAPI endpoints from registry system.
+- **CLI Tooling Generator**: Generate CLI commands from registry system.
+- **Type Safety**: Generated code ensures proper data handling
 
-Lineagentic-catalog is an graph based data catalog with generic model which can evolve without schema migrations support organisations demand for customization.
 
-### Some of the important features of Lineagentic-Catalog are:
-- **Native Relationships**: Neo4j's native graph structure provides better performance for relationship traversal.
-- **Complex Queries**: Easier to write complex lineage queries
-- **JSON Storage**: Simplified JSON-based aspect storage
-- **Flexibility**: Easier to evolve without schema migrations
-- **Column-Level**: Advanced column-level lineage
-- **Transformation Recipes**: Stores actual transformation logic
-- **Bidirectional**: Easy to traverse both upstream and downstream
-- **Real-time aspect validation**: Real-time aspect validation
-- **Advanced versioning mechanism**: Advanced versioning mechanism for versioned aspects
-- **Entity registry validation**: Entity registry validation
+## Quick Start
 
-## Graph Model
+## 1- If you want to use Lineagentic-Catalog as a library
 
-The graph model is designed to be generic and can be extended supporting following concepts:
-
-### 1- Entities
-
-Entities are primary nodes in the metadata graph (e.g., Dataset, CorpUser, DataJob). Entity properties stored as node attributes. Example of entity creation:
-
+```
+1. Create a YAML file  /src/config/ # for your graph data model.
+2. uv sync . # to install dependencies.
+```
 ```python
-# Entity creation with URNs
-writer.upsert_entity("DataJob", job_urn, {
-    "name": j_name, "namespace": j_ns, "versionId": j_ver,
-    "integration": integration, "processingType": processing_type, "jobType": job_type_name
-})
+from src.registry.factory import RegistryFactory
+
+# 1. Initialize the registry factory with your config directory
+registry_factory = RegistryFactory("src/config")
+
+# 2. Create a Neo4j writer instance
+neo4j_writer = registry_factory.create_writer(
+    uri="bolt://localhost:7687",
+    user="neo4j",
+    password="password"
+)
+
+# 3. Create entities using the dynamically generated methods
+# The methods are generated based on your YAML configuration
+
+# Create a dataset
+dataset_urn = neo4j_writer.upsert_dataset(
+    platform="snowflake",
+    name="customer_data",
+    env="PROD"
+)
+
+# Create a data flow
+flow_urn = neo4j_writer.upsert_dataflow_aspect(
+    platform="airflow",
+    flow_id="customer_etl",
+    namespace="data_engineering",
+    name="Customer ETL Pipeline",
+    env="PROD"
+)
+
+# Create a data job
+job_urn = neo4j_writer.upsert_datajob(
+    flow_urn=flow_urn,
+    job_name="transform_customer_data"
+)
+
+# 4. Retrieve entities
+dataset = neo4j_writer.get_dataset(dataset_urn)
+print(f"Retrieved dataset: {dataset}")
+
+# 5. Clean up
+neo4j_writer.close()
 ```
 
-### 2- Aspects
+The library automatically generates methods like `upsert_dataset()`, `get_dataset()`, `delete_dataset()` based on your YAML configuration files. Each entity type defined in your `entities.yaml` and `aspects.yaml` gets its own set of CRUD operations.
 
-Aspects are collections of attributes describing facets of entities. Smallest atomic unit of write.
+## 2- You can also use auto-generated restful apis for generated methods by running:
 
-```python
-# Versioned aspect creation
-writer.upsert_versioned_aspect("DataJob", job_urn, "dataJobInfo", {
-    "name": j_name, "namespace": j_ns, "versionId": j_ver,
-    "integration": integration, "processingType": processing_type, "jobType": job_type_name
-})
+```
+1. Create a YAML file  /src/config/ # for your graph data model.
+2. uv sync . # to install dependencies.
+3- uv run generate-api # to generate FastAPI endpoints.
 ```
 
-Aspect are changed over time and can be versioned.Versioned aspects are used to store static attributes of an entity. TimeSeries aspects are used to store dynamic and operational metrics of an entity. there are two types of aspects:
+### Example: Using the Generated REST API
 
-Versioned aspects (Schema-based):
-```python
-writer.upsert_versioned_aspect("DataJob", job_urn, "dataJobInfo", {
-    "name": j_name, "namespace": j_ns, "versionId": j_ver,
-    "integration": integration, "processingType": processing_type, "jobType": job_type_name
-})
-```
-TimeSeries aspects (Event-based):
-```python
-writer.append_timeseries_aspect("DataJob", job_urn, "dataJobRun", {
-    "eventType": event_type,
-    "runId": run_id,
-    "parent": parent_info
-}, timestamp_ms=ts_ms)
-```
+After generating the API, you can use curl commands to interact with your metadata:
 
-Aspect Registry Validation:
-```python
-def _validate_aspect(self, entity_label: str, aspect_name: str, kind: str):
-    ents = self.registry.get("entities", {})
-    ent = ents.get(entity_label, {})
-    aspects = ent.get("aspects", {})
-    allowed = aspects.get(aspect_name)
-    if allowed != kind:
-        raise ValueError(f"Aspect '{aspect_name}' not allowed as '{kind}' on entity '{entity_label}'")
+```bash
+# 1. Create a dataset
+curl -X POST "http://localhost:8000/api/v1/entities/Dataset" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "platform": "snowflake",
+    "name": "customer_data",
+    "env": "PROD"
+  }'
+
+# 2. Get a dataset by URN
+curl -X GET "http://localhost:8000/api/v1/entities/Dataset/urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_data,PROD)"
 ```
 
-Lineagentic-catalog supports advanced versioning mechanism for versioned aspects. This is a key to track changes to entities and aspects over time supporting following features:
+## 3- You can also use auto-generated cli commands by running:
 
-**Key Features**:
-- **Automatic Version Increment**: New versions are auto-incremented
-- **Latest Flag**: Only one version marked as `latest: true`
-- **Version History**: All versions preserved with timestamps
-- **Atomic Updates**: Version changes are atomic operations
-
-```python
-def upsert_versioned_aspect(self, entity_label: str, entity_urn: str,
-                            aspect_name: str, payload: Dict[str, Any], version: int|None=None) -> int:
-    # 1. Validate aspect is allowed for entity
-    self._validate_aspect(entity_label, aspect_name, "versioned")
-    
-    # 2. Get current max version
-    current_max = self._max_version(entity_label, entity_urn, aspect_name)
-    new_version = current_max + 1 if version is None else version
-    
-    # 3. Mark previous version as not latest
-    s.run("""
-        MATCH (e:{entity_label} {{urn:$urn}})-[r:HAS_ASPECT {{name:$an, kind:'versioned', latest:true}}]->(:Aspect)
-        SET r.latest=false
-    """)
-    
-    # 4. Create new versioned aspect
-    s.run("""
-        MATCH (e:{entity_label} {{urn:$urn}})
-        CREATE (a:Aspect:Versioned {{id:$id, name:$an, version:$ver, kind:'versioned', json:$json, createdAt:$now}})
-        CREATE (e)-[:HAS_ASPECT {{name:$an, version:$ver, latest:true, kind:'versioned'}}]->(a)
-    """)
+```
+1. Create a YAML file  /src/config/ # for your graph data model.
+2. uv sync . # to install dependencies.
+3. uv run generate-cli # to generate CLI commands.
 ```
 
-### 3- Relationships
+### Example: Using the Generated CLI
 
-Relationships are edges between entities. Relationships are used to describe the relationships between entities and aspects.
+After generating the CLI, you can use command-line tools to manage your metadata:
 
-```python
-# Entity relationships
-writer.create_relationship("DataFlow", flow_urn, "HAS_JOB", "DataJob", job_urn, {})
-writer.create_relationship("DataJob", job_urn, "CONSUMES", "Dataset", in_urn, {})
-writer.create_relationship("DataJob", job_urn, "PRODUCES", "Dataset", out_urn, {})
+```bash
+# 1. Create a dataset
+registry-cli upsert-dataset --platform "snowflake" --name "customer_data" --env "PROD"
 
-# Column lineage relationships
-writer.create_relationship("Column", out_col_urn, "DERIVES_FROM", "Column", in_col_urn, {
-    "type": t.get("type"), "subtype": t.get("subtype"),
-    "description": t.get("description"), "masking": bool(t.get("masking"))
-})
+# 2. Get dataset information
+registry-cli get-dataset "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_data,PROD)" --output table
+
+# 3. Add ownership aspect to the dataset
+registry-cli upsert-ownership-aspect --entity-label "Dataset" --entity-urn "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_data,PROD)" --owners '[{"owner": "urn:li:corpuser:john.doe", "type": "DATAOWNER"}]'
+
+# 4. Health check
+registry-cli health
+```
+
+
+## How Registry Works - Detailed Flow Diagrams
+
+Lineagentic-Catalog is a **dynamic code generation system** that creates graph database writers from YAML configuration files. Registry module of is core of the Lineagentic-Catalog. It is developed based on registry design pattern Think of it as a "code generator" that reads configuration which is in this case is yaml file for your graph data model and builds Python classes automatically.
+
+### Why This Architecture is Powerful
+
+This system essentially turns YAML configuration into working Python code at runtime! It provides:
+
+1. **Flexibility**: Change data models without code changes
+2. **Consistency**: All entities follow the same patterns
+3. **Maintainability**: Business logic is separated from implementation
+4. **Extensibility**: Easy to add new entity types and relationships
+5. **Type Safety**: Generated code ensures proper data handling
+
+The registry system transforms declarative configuration into executable code, making it easy to adapt to changing business requirements while maintaining code quality and consistency.
+
+
+
+
+## How It Works - Detailed Flow Diagrams
+
+### 1. Bootstrap Phase: RegistryFactory Initialization
+This diagram shows the complete initialization flow from YAML configuration to generated class.
+
+<p align="center">
+  <img src="images/01_bootstrap_phase.png" alt="Bootstrap Phase Diagram" width="800">
+</p>
+*Shows how RegistryFactory loads config, validates it, generates functions, and creates the final writer class.*
+
+### 2. Runtime Phase: Using Generated Methods
+This diagram shows what happens when you use the generated methods.
+
+<p align="center">
+  <img src="images/02_runtime_phase.png" alt="Runtime Phase Diagram" width="800">
+</p>
+*Flow when calling `upsert_dataset()` and `add_aspect()`.*
+
+### 3. Configuration Loading Flow
+<p align="center">
+  <img src="images/03_config_loading.png" alt="Configuration Loading Diagram" width="800">
+</p>
+
+### 4. Method Generation Flow
+<p align="center">
+  <img src="images/04_method_generation.png" alt="Method Generation Diagram" width="800">
+</p>
+
+### 5. Overall System Architecture
+<p align="center">
+  <img src="images/05_system_architecture.png" alt="System Architecture Diagram" width="800">
+</p>
+
+## 6. Data Flow Overview
+<p align="center">
+  <img src="images/06_data_flow.png" alt="Data Flow Diagram" width="800">
+</p>
+
+## Step-by-Step Process
+
+1. Configuration Files (`src/config/` folder)
+
+The system starts with YAML configuration files that define the data model.
+
+- **`main_registry.yaml`**: The main entry point that includes all other config files
+- **`entities.yaml`**: Defines what types of data objects exist (Dataset, DataFlow, CorpUser, etc.) 
+- **`urn_patterns.yaml`**: Defines how to create unique identifiers (URNs) for each entity
+- **`aspects.yaml`**: Defines properties and metadata for entities (e.g. datasetProperties, dataflowProperties, etc.)
+- **`relationships.yaml`**: Defines how entities connect to each other (e.g. dataset -> dataflow)
+- **`utilities.yaml`**: Defines helper functions for data processing (e.g. data cleaning, data transformation, etc.)
+
+2. Registry Loading (`src/registry/loaders.py`)
+
+- Reads the main registry file
+- Merges all included YAML files into one big configuration
+- Handles file dependencies and deep merging
+
+3. Validation (`src/registry/validators.py`)
+
+- Checks that all required sections exist
+- Validates configuration structure
+- Ensures everything is properly configured
+
+4. Code Generation (`src/registry/generators.py`)
+
+- **URNGenerator**: Creates functions that generate unique identifiers
+- **AspectProcessor**: Creates functions that process entity metadata
+- **UtilityFunctionBuilder**: Creates helper functions for data cleaning/processing
+
+5. Class Generation (`src/registry/writers.py`)
+
+- Takes all the generated functions and configuration
+- Dynamically creates a Python class called `Neo4jMetadataWriter`
+- This class has methods like:
+  - `upsert_dataset()`, `get_dataset()`, `delete_dataset()`
+  - `upsert_dataflow()`, `get_dataflow()`, `delete_dataflow()`
+  - And so on for each entity type
+
+6. Factory (`src/registry/factory.py`)
+
+- Orchestrates the entire process
+- Creates the final writer class
+- Provides a simple interface to use the generated code
+
+## Example in fine grained way: How a Dataset Gets Created
+
+1. **Config says**: "Dataset entities need platform, name, env, versionId properties"
+2. **URN Pattern says**: "Dataset URNs should look like: `urn:li:dataset:(platform,name,env)`"
+3. **Generator creates**: A function that builds URNs from the input data
+4. **Writer gets**: A method `upsert_dataset(platform="mysql", name="users", env="PROD")`
+5. **Result**: Creates a dataset node in Neo4j with the URN `urn:li:dataset:(mysql,users,PROD)`
+
+## Key Benefits
+
+- **No hardcoded entity types**: Add new entities by just editing YAML
+- **Flexible URN patterns**: Change how IDs are generated without touching code
+- **Dynamic methods**: New entity types automatically get create/read/delete methods
+- **Configuration-driven**: Business logic is in config files, not code
+- **Maintainable**: Changes to data model only require config updates

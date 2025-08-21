@@ -1,0 +1,32 @@
+flowchart LR
+    subgraph "Input"
+        A[YAML Config Files]
+    end
+    
+    subgraph "Processing"
+        B[Load & Merge]
+        C[Validate]
+        D[Generate Functions]
+        E[Create Class]
+    end
+    
+    subgraph "Output"
+        F[Dynamic Neo4j Writer]
+    end
+    
+    subgraph "Usage"
+        G[Call Methods]
+        H[Execute Queries]
+    end
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    
+    style A fill:#e3f2fd
+    style F fill:#e8f5e8
+    style H fill:#fff3e0

@@ -1,0 +1,41 @@
+graph TB
+    subgraph "Configuration Layer"
+        A[main_registry.yaml] --> B[entities.yaml]
+        A --> C[urn_patterns.yaml]
+        A --> D[aspects.yaml]
+        A --> E[relationships.yaml]
+        A --> F[utilities.yaml]
+    end
+    
+    subgraph "Registry System"
+        G[RegistryLoader] --> H[RegistryValidator]
+        H --> I[Generators]
+        I --> J[Neo4jWriterGenerator]
+    end
+    
+    subgraph "Generated Code"
+        K[Neo4jMetadataWriter Class]
+        L[URN Functions]
+        M[Utility Functions]
+        N[Aspect Processors]
+    end
+    
+    subgraph "Runtime"
+        O[Your Application]
+        P[Neo4j Database]
+    end
+    
+    A --> G
+    G --> I
+    I --> K
+    I --> L
+    I --> M
+    I --> N
+    J --> K
+    O --> K
+    K --> P
+    
+    style A fill:#e1f5fe
+    style G fill:#f3e5f5
+    style K fill:#e8f5e8
+    style O fill:#fff3e0
