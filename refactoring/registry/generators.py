@@ -116,11 +116,17 @@ class UtilityFunctionBuilder:
                 multiplier = utility_config.get(implementation.get('multiplier_config', ''), 1000)
                 
                 def func():
-                    return int(getattr(dt.datetime, method)(getattr(dt, timezone)).timestamp() * multiplier)
+                    if timezone == 'UTC':
+                        return int(getattr(dt.datetime, method)(dt.timezone.utc).timestamp() * multiplier)
+                    else:
+                        return int(getattr(dt.datetime, method)(getattr(dt, timezone)).timestamp() * multiplier)
                 return func
             else:
                 def func():
-                    return getattr(dt.datetime, method)(getattr(dt, timezone))
+                    if timezone == 'UTC':
+                        return getattr(dt.datetime, method)(dt.timezone.utc)
+                    else:
+                        return getattr(dt.datetime, method)(getattr(dt, timezone))
                 return func
         
         else:
