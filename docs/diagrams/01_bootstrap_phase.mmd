@@ -1,0 +1,60 @@
+sequenceDiagram
+    autonumber
+    participant App as Your App
+    participant Factory as RegistryFactory
+    participant Load as RegistryLoader
+    participant Valid as RegistryValidator
+    participant Gen as Generators (URN/Aspect/Utility)
+    participant WriterGen as Neo4jWriterGenerator
+    participant Writer as Neo4jMetadataWriter (class)
+    
+    App->>Factory: __init__(path="config/main_registry.yaml")
+    note right of Factory: store registry_path
+    
+    Factory->>Load: load()
+    activate Load
+    Load->>Load: read main_registry.yaml
+    Load->>Load: resolve includes (entities.yml, aspects.yml, ...)
+    Load->>Load: deep-merge all sections
+    Load-->>Factory: merged_config
+    deactivate Load
+
+    Factory->>Valid: validate(merged_config)
+    activate Valid
+    Valid->>Valid: check required sections exist
+    Valid->>Valid: validate configuration structure
+    Valid-->>Factory: validation_ok | raises error
+    deactivate Valid
+
+    Factory->>Gen: create_functions() [UtilityFunctionBuilder]
+    activate Gen
+    Gen->>Gen: build utility functions from config
+    Gen-->>Factory: utility_functions {name -> callable}
+    deactivate Gen
+
+    Factory->>Gen: create_generators() [URNGenerator]
+    activate Gen
+    Gen->>Gen: build URN generation functions
+    Gen-->>Factory: urn_generators {entity -> callable}
+    deactivate Gen
+
+    Factory->>Gen: create_processors() [AspectProcessor]
+    activate Gen
+    Gen->>Gen: build aspect processing functions
+    Gen-->>Factory: aspect_processors {aspect -> callable}
+    deactivate Gen
+
+    Factory->>WriterGen: generate_class()
+    activate WriterGen
+    WriterGen->>WriterGen: synthesize methods<br/>(upsert_*, get_*, delete_*, relationship_*)
+    WriterGen-->>Factory: Neo4jMetadataWriter (class)
+    deactivate WriterGen
+
+    App->>Factory: create_writer(neo4j_uri, user, pwd)
+    activate Factory
+    Factory->>Writer: __init__(neo4j_uri, user, pwd, config, fns)
+    activate Writer
+    Writer-->>Factory: writer_instance
+    deactivate Writer
+    Factory-->>App: writer_instance
+    deactivate Factory

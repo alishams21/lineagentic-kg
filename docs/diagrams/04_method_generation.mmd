@@ -1,0 +1,35 @@
+sequenceDiagram
+    autonumber
+    participant WriterGen as Neo4jWriterGenerator
+    participant Config as Registry Config
+    participant URNGen as URN Generators
+    participant Utility as Utility Functions
+    
+    WriterGen->>Config: get entities section
+    Config-->>WriterGen: {Dataset: {...}, DataFlow: {...}}
+    
+    loop For each entity
+        WriterGen->>Config: get entity definition
+        Config-->>WriterGen: {urn_generator: "dataset", properties: [...]}
+        
+        WriterGen->>URNGen: get urn_generator function
+        URNGen-->>WriterGen: dataset_urn_function
+        
+        WriterGen->>WriterGen: create_upsert_method(entity_name, urn_gen, props)
+        WriterGen->>WriterGen: create_get_method(entity_name)
+        WriterGen->>WriterGen: create_delete_method(entity_name)
+        
+        WriterGen->>WriterGen: setattr(writer_class, "upsert_dataset", method)
+        WriterGen->>WriterGen: setattr(writer_class, "get_dataset", method)
+        WriterGen->>WriterGen: setattr(writer_class, "delete_dataset", method)
+    end
+    
+    WriterGen->>Config: get aspects section
+    Config-->>WriterGen: {datasetProperties: {...}}
+    
+    loop For each aspect
+        WriterGen->>WriterGen: create_aspect_method(aspect_name, aspect_def)
+        WriterGen->>WriterGen: setattr(writer_class, "add_datasetProperties", method)
+    end
+    
+    WriterGen-->>WriterGen: return generated_class

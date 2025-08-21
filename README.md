@@ -1,0 +1,238 @@
+# Lineagentic-Catalog
+
+Lineagentic-Catalog is more than just a data catalog—it's a graph-native metadata platform that turns simple YAML definitions into a fully operational, customizable, and governed data model. With extendability built in, automatic generation of REST APIs, automatic generation of CLI tooling it delivers a "batteries included" experience for modern data teams.
+
+## Features
+- **Generic Metadata Model Generator**: Highly customizable metadata model that can be extended to support new entities, aspects, and relationships. 
+- **REST APIs Generator**: Generate FastAPI endpoints from registry system.
+- **CLI Tooling Generator**: Generate CLI commands from registry system.
+- **Type Safety**: Generated code ensures proper data handling
+
+
+## Quick Start
+
+## 1- If you want to use Lineagentic-Catalog as a library
+
+```
+1. Create a YAML file  /src/config/ # for your graph data model.
+2. uv sync . # to install dependencies.
+```
+```python
+from src.registry.factory import RegistryFactory
+
+# 1. Initialize the registry factory with your config directory
+registry_factory = RegistryFactory("src/config")
+
+# 2. Create a Neo4j writer instance
+neo4j_writer = registry_factory.create_writer(
+    uri="bolt://localhost:7687",
+    user="neo4j",
+    password="password"
+)
+
+# 3. Create entities using the dynamically generated methods
+# The methods are generated based on your YAML configuration
+
+# Create a dataset
+dataset_urn = neo4j_writer.upsert_dataset(
+    platform="snowflake",
+    name="customer_data",
+    env="PROD"
+)
+
+# Create a data flow
+flow_urn = neo4j_writer.upsert_dataflow_aspect(
+    platform="airflow",
+    flow_id="customer_etl",
+    namespace="data_engineering",
+    name="Customer ETL Pipeline",
+    env="PROD"
+)
+
+# Create a data job
+job_urn = neo4j_writer.upsert_datajob(
+    flow_urn=flow_urn,
+    job_name="transform_customer_data"
+)
+
+# 4. Retrieve entities
+dataset = neo4j_writer.get_dataset(dataset_urn)
+print(f"Retrieved dataset: {dataset}")
+
+# 5. Clean up
+neo4j_writer.close()
+```
+
+The library automatically generates methods like `upsert_dataset()`, `get_dataset()`, `delete_dataset()` based on your YAML configuration files. Each entity type defined in your `entities.yaml` and `aspects.yaml` gets its own set of CRUD operations.
+
+## 2- You can also use auto-generated restful apis for generated methods by running:
+
+```
+1. Create a YAML file  /src/config/ # for your graph data model.
+2. uv sync . # to install dependencies.
+3- uv run generate-api # to generate FastAPI endpoints.
+```
+
+### Example: Using the Generated REST API
+
+After generating the API, you can use curl commands to interact with your metadata:
+
+```bash
+# 1. Create a dataset
+curl -X POST "http://localhost:8000/api/v1/entities/Dataset" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "platform": "snowflake",
+    "name": "customer_data",
+    "env": "PROD"
+  }'
+
+# 2. Get a dataset by URN
+curl -X GET "http://localhost:8000/api/v1/entities/Dataset/urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_data,PROD)"
+```
+
+## 3- You can also use auto-generated cli commands by running:
+
+```
+1. Create a YAML file  /src/config/ # for your graph data model.
+2. uv sync . # to install dependencies.
+3. uv run generate-cli # to generate CLI commands.
+```
+
+### Example: Using the Generated CLI
+
+After generating the CLI, you can use command-line tools to manage your metadata:
+
+```bash
+# 1. Create a dataset
+registry-cli upsert-dataset --platform "snowflake" --name "customer_data" --env "PROD"
+
+# 2. Get dataset information
+registry-cli get-dataset "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_data,PROD)" --output table
+
+# 3. Add ownership aspect to the dataset
+registry-cli upsert-ownership-aspect --entity-label "Dataset" --entity-urn "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_data,PROD)" --owners '[{"owner": "urn:li:corpuser:john.doe", "type": "DATAOWNER"}]'
+
+# 4. Health check
+registry-cli health
+```
+
+
+## How Registry Works - Detailed Flow Diagrams
+
+Lineagentic-Catalog is a **dynamic code generation system** that creates graph database writers from YAML configuration files. Registry module of is core of the Lineagentic-Catalog. It is developed based on registry design pattern Think of it as a "code generator" that reads configuration which is in this case is yaml file for your graph data model and builds Python classes automatically.
+
+### Why This Architecture is Powerful
+
+This system essentially turns YAML configuration into working Python code at runtime! It provides:
+
+1. **Flexibility**: Change data models without code changes
+2. **Consistency**: All entities follow the same patterns
+3. **Maintainability**: Business logic is separated from implementation
+4. **Extensibility**: Easy to add new entity types and relationships
+5. **Type Safety**: Generated code ensures proper data handling
+
+The registry system transforms declarative configuration into executable code, making it easy to adapt to changing business requirements while maintaining code quality and consistency.
+
+
+
+
+## How It Works - Detailed Flow Diagrams
+
+### 1. Bootstrap Phase: RegistryFactory Initialization
+This diagram shows the complete initialization flow from YAML configuration to generated class.
+
+<p align="center">
+  <img src="images/01_bootstrap_phase.png" alt="Bootstrap Phase Diagram" width="800">
+</p>
+*Shows how RegistryFactory loads config, validates it, generates functions, and creates the final writer class.*
+
+### 2. Runtime Phase: Using Generated Methods
+This diagram shows what happens when you use the generated methods.
+
+<p align="center">
+  <img src="images/02_runtime_phase.png" alt="Runtime Phase Diagram" width="800">
+</p>
+*Flow when calling `upsert_dataset()` and `add_aspect()`.*
+
+### 3. Configuration Loading Flow
+<p align="center">
+  <img src="images/03_config_loading.png" alt="Configuration Loading Diagram" width="800">
+</p>
+
+### 4. Method Generation Flow
+<p align="center">
+  <img src="images/04_method_generation.png" alt="Method Generation Diagram" width="800">
+</p>
+
+### 5. Overall System Architecture
+<p align="center">
+  <img src="images/05_system_architecture.png" alt="System Architecture Diagram" width="800">
+</p>
+
+## 6. Data Flow Overview
+<p align="center">
+  <img src="images/06_data_flow.png" alt="Data Flow Diagram" width="800">
+</p>
+
+## Step-by-Step Process
+
+1. Configuration Files (`src/config/` folder)
+
+The system starts with YAML configuration files that define the data model.
+
+- **`main_registry.yaml`**: The main entry point that includes all other config files
+- **`entities.yaml`**: Defines what types of data objects exist (Dataset, DataFlow, CorpUser, etc.) 
+- **`urn_patterns.yaml`**: Defines how to create unique identifiers (URNs) for each entity
+- **`aspects.yaml`**: Defines properties and metadata for entities (e.g. datasetProperties, dataflowProperties, etc.)
+- **`relationships.yaml`**: Defines how entities connect to each other (e.g. dataset -> dataflow)
+- **`utilities.yaml`**: Defines helper functions for data processing (e.g. data cleaning, data transformation, etc.)
+
+2. Registry Loading (`src/registry/loaders.py`)
+
+- Reads the main registry file
+- Merges all included YAML files into one big configuration
+- Handles file dependencies and deep merging
+
+3. Validation (`src/registry/validators.py`)
+
+- Checks that all required sections exist
+- Validates configuration structure
+- Ensures everything is properly configured
+
+4. Code Generation (`src/registry/generators.py`)
+
+- **URNGenerator**: Creates functions that generate unique identifiers
+- **AspectProcessor**: Creates functions that process entity metadata
+- **UtilityFunctionBuilder**: Creates helper functions for data cleaning/processing
+
+5. Class Generation (`src/registry/writers.py`)
+
+- Takes all the generated functions and configuration
+- Dynamically creates a Python class called `Neo4jMetadataWriter`
+- This class has methods like:
+  - `upsert_dataset()`, `get_dataset()`, `delete_dataset()`
+  - `upsert_dataflow()`, `get_dataflow()`, `delete_dataflow()`
+  - And so on for each entity type
+
+6. Factory (`src/registry/factory.py`)
+
+- Orchestrates the entire process
+- Creates the final writer class
+- Provides a simple interface to use the generated code
+
+## Example in fine grained way: How a Dataset Gets Created
+
+1. **Config says**: "Dataset entities need platform, name, env, versionId properties"
+2. **URN Pattern says**: "Dataset URNs should look like: `urn:li:dataset:(platform,name,env)`"
+3. **Generator creates**: A function that builds URNs from the input data
+4. **Writer gets**: A method `upsert_dataset(platform="mysql", name="users", env="PROD")`
+5. **Result**: Creates a dataset node in Neo4j with the URN `urn:li:dataset:(mysql,users,PROD)`
+
+## Key Benefits
+
+- **No hardcoded entity types**: Add new entities by just editing YAML
+- **Flexible URN patterns**: Change how IDs are generated without touching code
+- **Dynamic methods**: New entity types automatically get create/read/delete methods
+- **Configuration-driven**: Business logic is in config files, not code
+- **Maintainable**: Changes to data model only require config updates
