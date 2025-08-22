@@ -23,7 +23,6 @@ Lineagentic-Catalog is data catalogue as code factory. Build a Yaml file in "lin
 1. pip install lineagentic-catalog
    for dev: clone the repo and run: uv sync. 
 2. The package comes with default YAML configuration files in lineagentic_catalog/config/
-
 ```
 3. Run the example:
 ```python
