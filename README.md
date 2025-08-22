@@ -20,13 +20,10 @@ Lineagentic-Catalog is more than just a data catalog—it's a graph-native metad
 Lineagentic-Catalog is data catalogue as code factory. Build a Yaml file in "lineagentic_catalog/config" folder for your desired architecture and taxonomy and Lineagentic-Catalog will generate all the code for you. You will get a python library with all the methods required for your data catalouge which is graph native
 
 ```
-1- pip install lineagentic-catalog
-2. Create a YAML file  /lineagentic_catalog/config/ # for your graph data model.
-3. uv sync . # to install dependencies.
-4. Run the example:
-```
-python test/tt.py
-```
+1. pip install lineagentic-catalog
+   for dev: clone the repo and run: uv sync. 
+2. The package comes with default YAML configuration files in lineagentic_catalog/config/
+3. Run the example:
 ```python
 from lineagentic_catalog.registry.factory import RegistryFactory
 from lineagentic_catalog.utils import get_logger, setup_logging, log_function_call, log_function_result
@@ -131,9 +128,11 @@ The library automatically generates methods like `upsert_dataset()`, `upsert_dat
 You can also use auto-generated restful apis out of the box to save huge time. Just run following commands and you will have a FastAPI server running on your local machine with all endpoints for your graph data model.
 
 ```
-1. Create a YAML file  /lineagentic_catalog/config/ # for your graph data model.
-2. uv sync . # to install dependencies.
-3- uv run generate-api # to generate FastAPI endpoints.
+1. pip install lineagentic-catalog
+   for dev: clone the repo and run: uv sync.
+2. The package comes with default YAML configuration files in lineagentic_catalog/config/
+3. generate-api # to generate FastAPI endpoints.
+4. cd generated_api && pip install -r requirements.txt && python main.py # to run the API server
 ```
 
 After generating the API, you can use curl commands to interact with your metadata:
@@ -150,19 +149,21 @@ curl -X POST "http://localhost:8000/api/v1/entities/Dataset" \
 
 # 2. Get a dataset by URN
 curl -X GET "http://localhost:8000/api/v1/entities/Dataset/urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_data,PROD)"
-```
+
+# 3. View API documentation
+# Open http://localhost:8000/docs in your browser for interactive API documentation
 
 ## Out of the box CLI tooling:
 
 In Lineagentic-Catalog, you can also auto-generate CLI tooling. Just run following commands and you will have a CLI tooling running on your local machine with all commands for your graph data model.
 
 ```
-1. Create a YAML file  /lineagentic_catalog/config/ # for your graph data model.
-2. uv sync . # to install dependencies.
-3. uv run generate-cli # to generate CLI commands.
+1. pip install lineagentic-catalog
+   for dev: clone the repo and run: uv sync . # to install dependencies.
+2. The package comes with default YAML configuration files in lineagentic_catalog/config/
+3. generate-cli # to generate CLI commands.
+4. cd generated_cli && pip install -r requirements.txt # to install CLI dependencies
 ```
-
-### Example: Using the Generated CLI
 
 After generating the CLI, you can use command-line tools to manage your metadata:
 
