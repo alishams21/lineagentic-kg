@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Entry point script for CLI generation
+Entry point script for API generation
 """
 
 import os
@@ -11,31 +11,32 @@ from pathlib import Path
 package_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(package_root))
 
-from src.cli_generator.generator import CLIGenerator
+from lineagentic_catalog.api_generator.generator import APIGenerator
 
 
 def main():
-    """Generate CLI files"""
+    """Generate API files"""
     # Configuration
-    registry_path = "src/config/main_registry.yaml"
-    output_dir = "generated_cli"
+    registry_path = "lineagentic_catalog/config/main_registry.yaml"
+    output_dir = "generated_api"
     
-    print("🚀 Generating CLI from RegistryFactory...")
+    print("🚀 Generating FastAPI from RegistryFactory...")
     print(f"📂 Registry: {registry_path}")
     print(f"📁 Output: {output_dir}")
     
     # Create generator
-    generator = CLIGenerator(registry_path, output_dir)
+    generator = APIGenerator(registry_path, output_dir)
     
     # Generate all files
     generator.generate_all()
     
-    print(f"\n✅ CLI generation complete!")
+    print(f"\n✅ API generation complete!")
     print(f"📁 Files generated in: {output_dir}")
-    print(f"\n🚀 To run the CLI:")
+    print(f"\n🚀 To run the API:")
     print(f"   cd {output_dir}")
     print(f"   pip install -r requirements.txt")
-    print(f"   python main.py --help")
+    print(f"   python main.py")
+    print(f"\n🌐 API will be available at: http://localhost:8000/docs")
 
 
 if __name__ == "__main__":

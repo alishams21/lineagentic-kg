@@ -10,6 +10,10 @@ from .validators import RegistryValidator
 from .generators import URNGenerator, AspectProcessor, UtilityFunctionBuilder
 from .writers import Neo4jWriterGenerator
 
+# Setup logging for registry module
+from ..utils.logging_config import get_logger
+registry_logger = get_logger("lineagentic.registry")
+
 __all__ = [
     "RegistryFactory",
     "RegistryLoader", 
@@ -17,5 +21,6 @@ __all__ = [
     "URNGenerator",
     "AspectProcessor", 
     "UtilityFunctionBuilder",
-    "Neo4jWriterGenerator"
+    "Neo4jWriterGenerator",
+    "registry_logger"
 ]

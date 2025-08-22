@@ -9,6 +9,7 @@ import inspect
 from typing import Any, Dict, List, Set
 from pathlib import Path
 
+from ..utils.logging_config import get_logger, log_function_call, log_function_result, log_error_with_context
 from ..registry.factory import RegistryFactory
 
 
@@ -16,19 +17,32 @@ class APIGenerator:
     """Generates FastAPI files based on RegistryFactory methods"""
     
     def __init__(self, registry_path: str, output_dir: str = "generated_api"):
+        self.logger = get_logger("lineagentic.api.generator")
         self.registry_path = registry_path
         self.output_dir = Path(output_dir)
-        self.factory = RegistryFactory(registry_path)
         
-        # Create output directory
-        self.output_dir.mkdir(exist_ok=True)
+        self.logger.info("Initializing APIGenerator", registry_path=registry_path, output_dir=output_dir)
         
-        # Create a temporary writer instance to get the actual method names
-        self._temp_writer = None
+        try:
+            self.factory = RegistryFactory(registry_path)
+            
+            # Create output directory
+            self.output_dir.mkdir(exist_ok=True)
+            self.logger.debug("Created output directory", output_dir=str(self.output_dir))
+            
+            # Create a temporary writer instance to get the actual method names
+            self._temp_writer = None
+            
+            self.logger.info("APIGenerator initialized successfully")
+            
+        except Exception as e:
+            log_error_with_context(self.logger, e, "APIGenerator initialization")
+            raise
         
     def _get_temp_writer(self):
         """Get a temporary writer instance to inspect available methods"""
         if self._temp_writer is None:
+            self.logger.debug("Creating temporary writer instance for method inspection")
             # Create a temporary writer with dummy connection
             self._temp_writer = self.factory.create_writer("bolt://localhost:7687", "neo4j", "password")
         return self._temp_writer
@@ -43,23 +57,47 @@ class APIGenerator:
         
     def generate_all(self):
         """Generate all FastAPI files"""
-        print(" Generating FastAPI files from RegistryFactory...")
+        log_function_call(self.logger, "generate_all")
         
-        # Generate files
-        self._generate_models()
-        self._generate_get_routes()
-        self._generate_upsert_routes()
-        self._generate_delete_routes()
-        self._generate_factory_wrapper()
-        self._generate_main_app()
-        self._generate_requirements()
-        self._generate_readme()
-        
-        print(f"✅ Generated FastAPI files in: {self.output_dir}")
+        try:
+            self.logger.info("Generating FastAPI files from RegistryFactory...")
+            
+            # Generate files
+            self.logger.debug("Generating models.py")
+            self._generate_models()
+            
+            self.logger.debug("Generating get routes")
+            self._generate_get_routes()
+            
+            self.logger.debug("Generating upsert routes")
+            self._generate_upsert_routes()
+            
+            self.logger.debug("Generating delete routes")
+            self._generate_delete_routes()
+            
+            self.logger.debug("Generating factory wrapper")
+            self._generate_factory_wrapper()
+            
+            self.logger.debug("Generating main app")
+            self._generate_main_app()
+            
+            self.logger.debug("Generating requirements")
+            self._generate_requirements()
+            
+            self.logger.debug("Generating README")
+            self._generate_readme()
+            
+            self.logger.info("Generated FastAPI files successfully", output_dir=str(self.output_dir))
+            log_function_result(self.logger, "generate_all", output_dir=str(self.output_dir))
+            
+        except Exception as e:
+            log_error_with_context(self.logger, e, "generate_all")
+            raise
     
     def _generate_models(self):
         """Generate Pydantic models dynamically from registry configuration"""
-        print("📝 Generating models.py...")
+        log_function_call(self.logger, "_generate_models")
+        self.logger.debug("Generating models.py...")
         
         models_content = '''#!/usr/bin/env python3
 """
@@ -249,7 +287,8 @@ class DiscoveryResponse(BaseModel):
         with open(self.output_dir / "models.py", "w") as f:
             f.write(models_content)
         
-        print(f"✅ Generated models.py")
+        self.logger.debug("Generated models.py successfully")
+        log_function_result(self.logger, "_generate_models")
     
     def _generate_get_routes(self):
         """Generate GET routes"""

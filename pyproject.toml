@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lineagentic-catalog"
-version = "0.1.0"
+version = "0.4.0"
 description = "A dynamic registry system for Neo4j metadata management"
 readme = "README.md"
-license = {text = "MIT"}
+license = "Apache-2.0"
 authors = [
     {name = "LineAgentic Team", email = "team@lineagentic.com"}
 ]
@@ -18,13 +18,14 @@ keywords = ["neo4j", "metadata", "registry", "lineage", "catalog"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 requires-python = ">=3.8"
 dependencies = [
@@ -34,6 +35,7 @@ dependencies = [
     "pyyaml>=5.4.0",
     "uvicorn>=0.15.0",
     "python-multipart>=0.0.5",
+    "click>=8.0.0",
 ]
 
 [project.optional-dependencies]
@@ -43,11 +45,13 @@ dev = [
     "black>=21.0.0",
     "flake8>=3.8.0",
     "mypy>=0.910",
+    "twine>=3.0.0",
+    "build>=0.10.0",
 ]
 
 [project.scripts]
-generate-api = "src.scripts.generate_api:main"
-generate-cli = "src.scripts.generate_cli:main"
+generate-api = "lineagentic_catalog.scripts.generate_api:main"
+generate-cli = "lineagentic_catalog.scripts.generate_cli:main"
 
 [project.urls]
 Homepage = "https://lineagentic.com"
@@ -57,10 +61,13 @@ Issues = "https://github.com/lineagentic/lineagentic-catalog/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*"]
+include = ["lineagentic_catalog*"]
 
 [tool.setuptools.package-data]
-src = ["config/*.yaml"]
+"lineagentic_catalog" = ["config/*.yaml"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["*.pyc", "*.pyo", "*.pyd", "__pycache__", "*.so"]
 
 [tool.black]
 line-length = 88

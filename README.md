@@ -17,56 +17,107 @@ Lineagentic-Catalog is more than just a data catalog—it's a graph-native metad
 
 ## You can use Lineagentic-Catalog as a library
 
-Lineagentic-Catalog is data catalogue as code factory. Build a Yaml file in "src/config" folder for your desired architecture and taxonomy and Lineagentic-Catalog will generate all the code for you. You will get a python library with all the methods required for your data catalouge which is graph native
+Lineagentic-Catalog is data catalogue as code factory. Build a Yaml file in "lineagentic_catalog/config" folder for your desired architecture and taxonomy and Lineagentic-Catalog will generate all the code for you. You will get a python library with all the methods required for your data catalouge which is graph native
 
 ```
-1. Create a YAML file  /src/config/ # for your graph data model.
+1. Create a YAML file  /lineagentic_catalog/config/ # for your graph data model.
 2. uv sync . # to install dependencies.
 ```
 ```python
-from src.registry.factory import RegistryFactory
+from lineagentic_catalog.registry.factory import RegistryFactory
+from lineagentic_catalog.utils import get_logger, setup_logging, log_function_call, log_function_result
 
-# 1. Initialize the registry factory with your config directory
-registry_factory = RegistryFactory("src/config")
-
-# 2. Create a Neo4j writer instance
-neo4j_writer = registry_factory.create_writer(
-    uri="bolt://localhost:7687",
-    user="neo4j",
-    password="password"
+# Setup logging with custom configuration
+setup_logging(
+    default_level="INFO",
+    log_file="logs/lineagentic_catalog.log"
 )
 
-# 3. Create entities using the dynamically generated methods
-# The methods are generated based on your YAML configuration
+# Get logger for this application
+logger = get_logger("lineagentic.example")
 
-# Create a dataset
-dataset_urn = neo4j_writer.upsert_dataset(
-    platform="snowflake",
-    name="customer_data",
-    env="PROD"
-)
+logger.info("Starting LineAgentic Catalog example", config_path="lineagentic_catalog/config/main_registry.yaml")
 
-# Create a data flow
-flow_urn = neo4j_writer.upsert_dataflow_aspect(
-    platform="airflow",
-    flow_id="customer_etl",
-    namespace="data_engineering",
-    name="Customer ETL Pipeline",
-    env="PROD"
-)
+try:
+    # 1. Initialize the registry factory with your config file
+    log_function_call(logger, "RegistryFactory initialization", config_path="lineagentic_catalog/config/main_registry.yaml")
+    registry_factory = RegistryFactory("lineagentic_catalog/config/main_registry.yaml")
+    log_function_result(logger, "RegistryFactory initialization", 
+                       factory_created=True, registry_path="lineagentic_catalog/config/main_registry.yaml")
+    
+    # 2. Create a Neo4j writer instance
+    logger.info("Creating Neo4j writer instance", uri="bolt://localhost:7687")
+    neo4j_writer = registry_factory.create_writer(
+        uri="bolt://localhost:7687",
+        user="neo4j",
+        password="password"
+    )
+    logger.info("Neo4j writer instance created successfully")
+    
+    # 3. Create entities using the dynamically generated methods
+    # The methods are generated based on your YAML configuration
+    
+    # Create a dataset
+    logger.info("Creating dataset", platform="snowflake", name="customer_data", env="PROD")
+    dataset_urn = neo4j_writer.upsert_dataset(
+        platform="snowflake",
+        name="customer_data",
+        env="PROD"
+    )
+    logger.info("Dataset created successfully", dataset_urn=dataset_urn)
+    
+    # Create a data flow
+    logger.info("Creating data flow", 
+                platform="airflow", 
+                flow_id="customer_etl", 
+                namespace="data_engineering")
+    flow_urn = neo4j_writer.upsert_dataflowinfo_aspect(
+        payload={
+            "name": "Customer ETL Pipeline",
+            "namespace": "data_engineering",
+            "description": "Customer data ETL pipeline"
+        },
+        platform="airflow",
+        flow_id="customer_etl",
+        env="PROD"
+    )
+    logger.info("Data flow created successfully", flow_urn=flow_urn)
+    
+    # Create a data job
+    logger.info("Creating data job", flow_urn=flow_urn, job_name="transform_customer_data")
+    job_urn = neo4j_writer.upsert_datajobinfo_aspect(
+        payload={
+            "name": "Transform Customer Data",
+            "namespace": "data_engineering",
+            "description": "Transform customer data job"
+        },
+        flow_urn=flow_urn,
+        job_name="transform_customer_data"
+    )
+    logger.info("Data job created successfully", job_urn=job_urn)
+    
+    # 4. Retrieve entities
+    logger.info("Retrieving dataset", dataset_urn=dataset_urn)
+    dataset = neo4j_writer.get_dataset(dataset_urn)
+    logger.info("Dataset retrieved successfully", dataset_urn=dataset_urn, dataset_size=len(str(dataset)))
+    print(f"Retrieved dataset: {dataset}")
+    
+    # 5. Clean up
+    logger.info("Closing Neo4j writer connection")
+    neo4j_writer.close()
+    logger.info("Neo4j writer connection closed successfully")
+    
+    logger.info("LineAgentic Catalog example completed successfully", 
+                entities_created=3, 
+                dataset_urn=dataset_urn,
+                flow_urn=flow_urn,
+                job_urn=job_urn)
 
-# Create a data job
-job_urn = neo4j_writer.upsert_datajob(
-    flow_urn=flow_urn,
-    job_name="transform_customer_data"
-)
-
-# 4. Retrieve entities
-dataset = neo4j_writer.get_dataset(dataset_urn)
-print(f"Retrieved dataset: {dataset}")
-
-# 5. Clean up
-neo4j_writer.close()
+except Exception as e:
+    logger.error("Error in LineAgentic Catalog example", 
+                error_type=type(e).__name__,
+                error_message=str(e))
+    raise
 ```
 
 The library automatically generates methods like `upsert_dataset()`, `upsert_dataflow_aspect()`, `upsert_datajob()`, etc based on your YAML configuration files. Each entity type defined in your `entities.yaml` and `aspects.yaml` gets its own set of CRUD operations.
@@ -76,7 +127,7 @@ The library automatically generates methods like `upsert_dataset()`, `upsert_dat
 You can also use auto-generated restful apis out of the box to save huge time. Just run following commands and you will have a FastAPI server running on your local machine with all endpoints for your graph data model.
 
 ```
-1. Create a YAML file  /src/config/ # for your graph data model.
+1. Create a YAML file  /lineagentic_catalog/config/ # for your graph data model.
 2. uv sync . # to install dependencies.
 3- uv run generate-api # to generate FastAPI endpoints.
 ```
@@ -102,7 +153,7 @@ curl -X GET "http://localhost:8000/api/v1/entities/Dataset/urn:li:dataset:(urn:l
 In Lineagentic-Catalog, you can also auto-generate CLI tooling. Just run following commands and you will have a CLI tooling running on your local machine with all commands for your graph data model.
 
 ```
-1. Create a YAML file  /src/config/ # for your graph data model.
+1. Create a YAML file  /lineagentic_catalog/config/ # for your graph data model.
 2. uv sync . # to install dependencies.
 3. uv run generate-cli # to generate CLI commands.
 ```
@@ -191,7 +242,7 @@ This diagram shows what happens when you use the generated methods.
 
 ## Step-by-Step Process
 
-1. Configuration Files (`src/config/` folder)
+1. Configuration Files (`lineagentic_catalog/config/` folder)
 
 The system starts with YAML configuration files that define the data model.
 
@@ -202,25 +253,25 @@ The system starts with YAML configuration files that define the data model.
 - **`relationships.yaml`**: Defines how entities connect to each other (e.g. dataset -> dataflow)
 - **`utilities.yaml`**: Defines helper functions for data processing (e.g. data cleaning, data transformation, etc.)
 
-2. Registry Loading (`src/registry/loaders.py`)
+2. Registry Loading (`lineagentic_catalog/registry/loaders.py`)
 
 - Reads the main registry file
 - Merges all included YAML files into one big configuration
 - Handles file dependencies and deep merging
 
-3. Validation (`src/registry/validators.py`)
+3. Validation (`lineagentic_catalog/registry/validators.py`)
 
 - Checks that all required sections exist
 - Validates configuration structure
 - Ensures everything is properly configured
 
-4. Code Generation (`src/registry/generators.py`)
+4. Code Generation (`lineagentic_catalog/registry/generators.py`)
 
 - **URNGenerator**: Creates functions that generate unique identifiers
 - **AspectProcessor**: Creates functions that process entity metadata
 - **UtilityFunctionBuilder**: Creates helper functions for data cleaning/processing
 
-5. Class Generation (`src/registry/writers.py`)
+5. Class Generation (`lineagentic_catalog/registry/writers.py`)
 
 - Takes all the generated functions and configuration
 - Dynamically creates a Python class called `Neo4jMetadataWriter`
@@ -229,7 +280,7 @@ The system starts with YAML configuration files that define the data model.
   - `upsert_dataflow()`, `get_dataflow()`, `delete_dataflow()`
   - And so on for each entity type
 
-6. Factory (`src/registry/factory.py`)
+6. Factory (`lineagentic_catalog/registry/factory.py`)
 
 - Orchestrates the entire process
 - Creates the final writer class
