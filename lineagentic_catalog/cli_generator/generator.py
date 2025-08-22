@@ -9,6 +9,7 @@ import inspect
 from typing import Any, Dict, List, Set, Optional
 from pathlib import Path
 
+from ..utils.logging_config import get_logger, log_function_call, log_function_result, log_error_with_context
 from ..registry.factory import RegistryFactory
 
 
@@ -16,19 +17,32 @@ class CLIGenerator:
     """Generates Click-based CLI commands based on RegistryFactory methods"""
     
     def __init__(self, registry_path: str, output_dir: str = "generated_cli"):
+        self.logger = get_logger("lineagentic.cli.generator")
         self.registry_path = registry_path
         self.output_dir = Path(output_dir)
-        self.factory = RegistryFactory(registry_path)
         
-        # Create output directory
-        self.output_dir.mkdir(exist_ok=True)
+        self.logger.info("Initializing CLIGenerator", registry_path=registry_path, output_dir=output_dir)
         
-        # Create a temporary writer instance to get the actual method names
-        self._temp_writer = None
+        try:
+            self.factory = RegistryFactory(registry_path)
+            
+            # Create output directory
+            self.output_dir.mkdir(exist_ok=True)
+            self.logger.debug("Created output directory", output_dir=str(self.output_dir))
+            
+            # Create a temporary writer instance to get the actual method names
+            self._temp_writer = None
+            
+            self.logger.info("CLIGenerator initialized successfully")
+            
+        except Exception as e:
+            log_error_with_context(self.logger, e, "CLIGenerator initialization")
+            raise
         
     def _get_temp_writer(self):
         """Get a temporary writer instance to inspect available methods"""
         if self._temp_writer is None:
+            self.logger.debug("Creating temporary writer instance for method inspection")
             # Create a temporary writer with dummy connection
             self._temp_writer = self.factory.create_writer("bolt://localhost:7687", "neo4j", "password")
         return self._temp_writer
@@ -43,19 +57,42 @@ class CLIGenerator:
         
     def generate_all(self):
         """Generate all CLI files"""
-        print("🔧 Generating CLI commands from RegistryFactory...")
+        log_function_call(self.logger, "generate_all")
         
-        # Generate files
-        self._generate_factory_wrapper()
-        self._generate_entity_commands()
-        self._generate_aspect_commands()
-        self._generate_utility_commands()
-        self._generate_main_cli()
-        self._generate_requirements()
-        self._generate_readme()
-        self._generate_setup_py()
-        
-        print(f"✅ Generated CLI files in: {self.output_dir}")
+        try:
+            self.logger.info("Generating CLI commands from RegistryFactory...")
+            
+            # Generate files
+            self.logger.debug("Generating factory wrapper")
+            self._generate_factory_wrapper()
+            
+            self.logger.debug("Generating entity commands")
+            self._generate_entity_commands()
+            
+            self.logger.debug("Generating aspect commands")
+            self._generate_aspect_commands()
+            
+            self.logger.debug("Generating utility commands")
+            self._generate_utility_commands()
+            
+            self.logger.debug("Generating main CLI")
+            self._generate_main_cli()
+            
+            self.logger.debug("Generating requirements")
+            self._generate_requirements()
+            
+            self.logger.debug("Generating README")
+            self._generate_readme()
+            
+            self.logger.debug("Generating setup.py")
+            self._generate_setup_py()
+            
+            self.logger.info("Generated CLI files successfully", output_dir=str(self.output_dir))
+            log_function_result(self.logger, "generate_all", output_dir=str(self.output_dir))
+            
+        except Exception as e:
+            log_error_with_context(self.logger, e, "generate_all")
+            raise
     
     def _generate_factory_wrapper(self):
         """Generate factory wrapper for CLI dependency injection"""

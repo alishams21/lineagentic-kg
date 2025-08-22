@@ -16,13 +16,17 @@ help:
 	@echo "  - install-dev: Install development dependencies with uv"
 	@echo "  - lock-deps: Lock dependencies with uv"
 	@echo "  - sync-deps: Sync dependencies with uv"
+	@echo ""
+	@echo "📦 PyPI Publishing Commands:"
+	@echo "  - build-package: Build the PyPI package"
+	@echo "  - publish-testpypi: Publish to TestPyPI (testing)"
+	@echo "  - publish-pypi: Publish to PyPI (production)"
 
 # Load environment variables from .env file
 ifneq (,$(wildcard .env))
     include .env
     export
 endif
-
 
 # =============================================================================
 # DATABASES SERVERS
@@ -76,7 +80,7 @@ clean-pycache:
 	fi
 
 # Clean up temporary files and kill processes
-clean-all-stack:
+clean-all:
 	@echo "🧹 Cleaning up temporary files and processes..."
 	@echo "🛑 Killing processes on ports 8000, 7860..."
 	@lsof -ti:8000 | xargs kill -9 2>/dev/null || echo "No process on port 8000"
@@ -94,6 +98,10 @@ clean-all-stack:
 	@rm -rf .mypy_cache 2>/dev/null || echo "No .mypy_cache folder found"
 	@rm -rf generated_api 2>/dev/null || echo "No generated_api folder found"
 	@rm -rf generated_cli 2>/dev/null || echo "No generated_cli folder found"
+	@rm -rf logs 2>/dev/null || echo "No logs folder found"
+	@rm -rf dist 2>/dev/null || echo "No dist folder found"
+	@rm -rf lineagentic_catalog.egg-info 2>/dev/null || echo "No lineagentic_catalog.egg-info folder found"
+	@rm -rf .pytest_cache 2>/dev/null || echo "No .pytest_cache folder found"
 	@$(MAKE) clean-pycache
 	@echo "✅ Cleanup completed!"
 
@@ -141,3 +149,56 @@ generate-mermaid-diagram:
 		exit 1; \
 	fi
 	@echo "✅ Mermaid diagrams generated successfully!"
+
+
+
+# =============================================================================
+# PYPI PACKAGE COMMANDS ######################################################
+# =============================================================================
+
+# Build the PyPI package
+build-package:
+	@echo "📦 Building PyPI package..."
+	@echo "🧹 Cleaning previous builds..."
+	@rm -rf dist build *.egg-info
+	@echo "🔨 Building package..."
+	@python -m build
+	@echo "Package built successfully!"
+	@echo "Package files created in dist/ directory"
+	@echo "Next steps:"
+	@echo "  - Test locally: pip install dist/lineagentic_catalog-0.1.0.tar.gz"
+	@echo "  - Publish to TestPyPI: make publish-testpypi"
+	@echo "  - Publish to PyPI: make publish-pypi"
+
+# Publish to TestPyPI (testing)
+publish-testpypi:
+	@echo "Publishing to TestPyPI (testing)..."
+	@if [ ! -d "dist" ]; then \
+		echo " No dist/ directory found. Run 'make build-package' first."; \
+		exit 1; \
+	fi
+	@echo " Checking package..."
+	@python -m twine check dist/*
+	@echo " Uploading to TestPyPI..."
+	@python -m twine upload --repository testpypi dist/*
+	@echo "Package published to TestPyPI!"
+	@echo "View at: https://test.pypi.org/project/lineagentic-catalog/"
+	@echo "Test install: pip install --index-url https://test.pypi.org/simple/ lineagentic-catalog"
+
+# Publish to PyPI (production)
+publish-pypi:
+	@echo "Publishing to PyPI (production)..."
+	@if [ ! -d "dist" ]; then \
+		echo " No dist/ directory found. Run 'make build-package' first."; \
+		exit 1; \
+	fi
+	@echo "WARNING: This will publish to production PyPI!"
+	@echo "   Make sure you have tested on TestPyPI first."
+	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@echo " Checking package..."
+	@python -m twine check dist/*
+	@echo " Uploading to PyPI..."
+	@python -m twine upload dist/*
+	@echo "Package published to PyPI!"
+	@echo "View at: https://pypi.org/project/lineagentic-catalog/"
+	@echo "Install with: pip install lineagentic-catalog"
