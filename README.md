@@ -20,8 +20,12 @@ Lineagentic-Catalog is more than just a data catalog—it's a graph-native metad
 Lineagentic-Catalog is data catalogue as code factory. Build a Yaml file in "lineagentic_catalog/config" folder for your desired architecture and taxonomy and Lineagentic-Catalog will generate all the code for you. You will get a python library with all the methods required for your data catalouge which is graph native
 
 ```
-1. Create a YAML file  /lineagentic_catalog/config/ # for your graph data model.
-2. uv sync . # to install dependencies.
+1- pip install lineagentic-catalog
+2. Create a YAML file  /lineagentic_catalog/config/ # for your graph data model.
+3. uv sync . # to install dependencies.
+4. Run the example:
+```
+python test/tt.py
 ```
 ```python
 from lineagentic_catalog.registry.factory import RegistryFactory
