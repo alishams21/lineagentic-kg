@@ -17,7 +17,7 @@ Lineagentic-Catalog is more than just a data catalog—it's a graph-native metad
 
 ## You can use Lineagentic-Catalog as a library
 
-Build a Yaml file in "src/config" folder for your desired architecture and taxonomy and Lineagentic-Catalog will generate all the code for you. You will get a python library that you can use to interact with your graph database.
+Lineagentic-Catalog is data catalogue as code factory. Build a Yaml file in "src/config" folder for your desired architecture and taxonomy and Lineagentic-Catalog will generate all the code for you. You will get a python library with all the methods required for your data catalouge which is graph native
 
 ```
 1. Create a YAML file  /src/config/ # for your graph data model.
