@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lineagentic-catalog"
-version = "0.6.0"
-description = "A dynamic registry system for Neo4j metadata management"
+version = "0.7.0"
+description = "Graph-native metadata platform that turns simple YAML definitions into a fully operational, customizable, and governed data model."
 readme = "README.md"
 license = "Apache-2.0"
 authors = [

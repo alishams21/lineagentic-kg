@@ -1,5 +1,5 @@
 """
-LineAgentic Catalog - A dynamic registry system for Neo4j metadata management
+LineAgentic Catalog - Graph-native metadata platform that turns simple YAML definitions into a fully operational, customizable, and governed data model.
 """
 
 __version__ = "0.1.0"
