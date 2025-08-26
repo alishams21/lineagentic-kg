@@ -15,6 +15,12 @@ urn_patterns:
     dependencies: ["dataPlatform"]
     sanitize: ["name"]
   
+  dataProduct:
+    template: "{prefix}:dataProduct:({domain},{name},{env})"
+    parameters: ["domain", "name", "env"]
+    defaults: {"env": "PROD"}
+    sanitize: ["domain", "name"]
+  
   dataFlow:
     template: "{prefix}:dataFlow:({platform},{flow_id},{env})"
     parameters: ["platform", "flow_id", "env"]

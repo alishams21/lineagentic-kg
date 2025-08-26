@@ -139,3 +139,19 @@ aspect_relationships:
           target_entity_type: "DataJob"
           target_urn_field: "urn"
           target_urn_template: "{source_urn}#{source_field}"
+  
+  dpContract:
+    description: "Create HAS_CONTRACT relationship from dpContract aspect data"
+    rules:
+      - entity_type: "DataProduct"
+        relationship_type: "HAS_CONTRACT"
+        source_entity: "DataProduct"
+        target_entity: "Dataset"
+        direction: "outgoing"
+        field_mapping:
+          source_field: "datasets"
+          source_entity_type: "DataProduct"
+          source_urn_field: "urn"
+          target_entity_type: "Dataset"
+          target_urn_field: "name"
+  
