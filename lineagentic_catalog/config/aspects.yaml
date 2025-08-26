@@ -3,6 +3,56 @@
 
 # Aspect Definitions
 aspects:
+  dpContract:
+    type: versioned
+    properties:
+      - output_name
+      - output_type
+      - fields
+      - sink_location
+      - freshness
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name","domain"]
+      optional_params: []
+  dpObservability:
+    type: versioned
+    properties:
+      - metrics_config
+      - alerting_rules
+      - dashboard_config
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name","domain"]
+      optional_params: []
+  dpPolicy:
+    type: versioned
+    properties:
+      - access_control
+      - data_masking
+      - quality_gate
+      - retention_policy
+      - evaluation_points
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name","domain"]
+      optional_params: []
+  dpProvisioner:
+    type: versioned
+    properties:
+      - platform
+      - environment
+      - compute_resource
+      - storage_resource
+      - deployment_strategy
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name","domain"]
+      optional_params: []
   corpUserInfo:
     type: versioned
     properties:

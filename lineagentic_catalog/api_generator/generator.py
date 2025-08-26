@@ -54,6 +54,17 @@ class APIGenerator:
     def _get_method_name_for_aspect(self, aspect_name: str, operation: str) -> str:
         """Get method name for aspect operation using the same logic as Neo4jWriterGenerator"""
         return f"{operation}_{aspect_name.lower()}_aspect"
+    
+    def _sanitize_field_name(self, field_name: str) -> str:
+        """Sanitize field name for Python syntax by removing invalid characters"""
+        # Remove square brackets and other invalid characters for Python field names
+        sanitized = field_name.replace('[]', '').replace('[', '').replace(']', '')
+        # Replace any other invalid characters with underscore
+        sanitized = ''.join(c if c.isalnum() or c == '_' else '_' for c in sanitized)
+        # Ensure it doesn't start with a number
+        if sanitized and sanitized[0].isdigit():
+            sanitized = 'field_' + sanitized
+        return sanitized
         
     def generate_all(self):
         """Generate all FastAPI files"""
@@ -135,8 +146,9 @@ class {entity_name}UpsertRequest(BaseModel):
             
             # Add entity-specific properties
             for prop in properties:
+                sanitized_prop = self._sanitize_field_name(prop)
                 models_content += f'''
-    {prop}: Optional[str] = Field(None, description="{prop}")'''
+    {sanitized_prop}: Optional[str] = Field(None, description="{prop}")'''
             
             models_content += f'''
     additional_properties: Optional[Dict[str, Any]] = Field(None, description="Additional {entity_name} properties")
@@ -190,12 +202,13 @@ class {aspect_name.title()}AspectUpsertRequest(BaseModel):
             
             # Add aspect-specific properties
             for prop in properties:
+                sanitized_prop = self._sanitize_field_name(prop)
                 if prop in required_props:
                     models_content += f'''
-    {prop}: Any = Field(..., description="{prop}")'''
+    {sanitized_prop}: Any = Field(..., description="{prop}")'''
                 else:
                     models_content += f'''
-    {prop}: Optional[Any] = Field(None, description="{prop}")'''
+    {sanitized_prop}: Optional[Any] = Field(None, description="{prop}")'''
             
             # Add type-specific fields
             if aspect_type == 'versioned':
@@ -654,7 +667,15 @@ import os
 import sys
 from typing import Optional
 
-from ..registry.factory import RegistryFactory
+# Add the parent directory to sys.path to import the registry module
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+try:
+    from lineagentic_catalog.registry.factory import RegistryFactory
+except ImportError:
+    # Fallback for when running as standalone
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+    from lineagentic_catalog.registry.factory import RegistryFactory
 
 
 class FactoryWrapper:

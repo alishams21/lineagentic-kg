@@ -94,9 +94,17 @@ class Neo4jWriterGenerator:
                     if not aspect_rules:
                         return
                     
+                    # Get entity properties to include in relationship discovery
+                    entity_props = self._get_entity_generic(entity_type, entity_urn)
+                    if entity_props:
+                        # Merge aspect data with entity properties for relationship discovery
+                        combined_data = {**aspect_data, **entity_props}
+                    else:
+                        combined_data = aspect_data
+                    
                     for rule in aspect_rules.get(rules_field, []):
                         if rule.get(entity_type_field) == entity_type:
-                            self._apply_aspect_relationship_rule(entity_urn, entity_type, aspect_data, rule)
+                            self._apply_aspect_relationship_rule(entity_urn, entity_type, combined_data, rule)
                 
                 setattr(self, 'discover_relationships_from_aspect', discover_relationships_from_aspect.__get__(self))
             
@@ -420,9 +428,17 @@ class Neo4jWriterGenerator:
                 else:
                     field_value = aspect_data.get(source_field)
                     if field_value:
-                        self._create_relationship_from_field_mapping(
-                            entity_urn, entity_type, aspect_data, rule, field_value
-                        )
+                        # Handle comma-separated values generically
+                        if isinstance(field_value, str) and ',' in field_value:
+                            values = [v.strip() for v in field_value.split(",") if v.strip()]
+                            for value in values:
+                                self._create_relationship_from_field_mapping(
+                                    entity_urn, entity_type, aspect_data, rule, value
+                                )
+                        else:
+                            self._create_relationship_from_field_mapping(
+                                entity_urn, entity_type, aspect_data, rule, field_value
+                            )
                 
                 additional_relationships = rule.get(additional_relationships_field, [])
                 for additional_rule in additional_relationships:
@@ -457,7 +473,16 @@ class Neo4jWriterGenerator:
                 
                 if source_urn and target_urn:
                     self._ensure_entity_exists(target_entity_type, target_urn, field_value, target_urn_field)
-                    self._create_relationship_generic(source_entity_type, source_urn, relationship_type, target_entity_type, target_urn, {})
+                    # Check if relationship already exists to prevent duplicates
+                    with self._driver.session() as s:
+                        result = s.run(
+                            f"MATCH (a:{source_entity_type} {{urn: $source_urn}})-[r:{relationship_type}]->(b:{target_entity_type} {{urn: $target_urn}}) RETURN r",
+                            source_urn=source_urn, target_urn=target_urn
+                        )
+                        if not result.single():
+                            self._create_relationship_generic(source_entity_type, source_urn, relationship_type, target_entity_type, target_urn, {})
+                        else:
+                            print(f"   ℹ️ Relationship {relationship_type} already exists between {source_urn} and {target_urn}")
                 else:
                     print(f"   ⚠️ Skipped {relationship_type}: source_urn={source_urn}, target_urn={target_urn}")
             
@@ -491,6 +516,21 @@ class Neo4jWriterGenerator:
                 """Resolve target URN based on field mapping"""
                 rule_config = self.registry.get('relationship_rule_config', {})
                 
+                # If target_urn_field is not 'urn', try to find the entity by that field
+                if target_urn_field != rule_config.get('urn_field_name', 'urn'):
+                    # Try to find existing entity by the specified field
+                    with self._driver.session() as s:
+                        result = s.run(
+                            f"MATCH (e:{target_entity_type} {{{target_urn_field}: $value}}) WHERE e.urn IS NOT NULL RETURN e.urn as urn ORDER BY e.urn LIMIT 1",
+                            value=field_value
+                        )
+                        record = result.single()
+                        if record and record['urn']:
+                            return record['urn']
+                        else:
+                            print(f"   ⚠️ Could not find {target_entity_type} with {target_urn_field}={field_value}")
+                            return None
+                
                 if target_urn_field == rule_config.get('urn_field_name', 'urn'):
                     urn_template = field_mapping.get('target_urn_template')
                     if urn_template:
@@ -510,6 +550,8 @@ class Neo4jWriterGenerator:
                                     urn_params['field_path'] = field_value
                                 if 'dataset_urn' in urn_template:
                                     urn_params['dataset_urn'] = aspect_data.get('sourceDataset') or aspect_data.get('targetDataset')
+                                
+
                                 
                                 for param in entity_def.get('properties', []):
                                     if param in aspect_data and param not in urn_params:

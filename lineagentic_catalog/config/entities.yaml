@@ -3,6 +3,21 @@
 
 # Entity Definitions
 entities:
+  DataProduct:
+    key: dataProductKey
+    urn_generator: dataProduct
+    properties:
+      - name
+      - domain
+      - purpose
+      - owner
+      - upstream
+      - datasets
+    aspects:
+      dpContract: versioned
+      dpObservability: versioned
+      dpPolicy: versioned
+      dpProvisioner: versioned
   Dataset:
     key: datasetKey
     urn_generator: dataset
