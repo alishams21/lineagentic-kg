@@ -187,8 +187,18 @@ curl -X POST "http://localhost:8000/api/v1/entities/DataFlow" \
   }' | jq '.'
 
 echo ""
-echo "1️⃣2️⃣ Adding Transformation Relationship:"
-echo "----------------------------------------"
+echo "1️⃣2️⃣ Creating DataJob:"
+echo "---------------------"
+curl -X POST "http://localhost:8000/api/v1/entities/DataJob" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "flow_urn": "urn:li:dataFlow:(analytics,customer_etl,PROD)",
+    "job_name": "customer_id_extraction"
+  }' | jq '.'
+
+echo ""
+echo "1️⃣3️⃣ Adding DataJob Input/Output Relationship:"
+echo "----------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/dataJobInputOutput" \
   -H "Content-Type: application/json" \
   -d '{
@@ -199,7 +209,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/dataJobInputOutput" \
   }' | jq '.'
 
 echo ""
-echo "1️⃣3️⃣ Adding Column Transformation:"
+echo "1️⃣4️⃣ Adding Column Transformation:"
 echo "----------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/transformation" \
   -H "Content-Type: application/json" \
