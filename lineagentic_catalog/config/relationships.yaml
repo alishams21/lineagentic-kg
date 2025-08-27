@@ -96,7 +96,7 @@ aspect_relationships:
           source_urn_field: "urn"
           target_entity_type: "Column"
           target_urn_field: "urn"
-          target_urn_template: "{source_urn}#{source_field}"
+          target_urn_template: "{dataset_urn}#{field_path}"
 
   dataJobInputOutput:
     description: "Creates CONSUMES and PRODUCES relationships from dataJobInputOutput aspect data"
@@ -149,9 +149,9 @@ aspect_relationships:
         target_entity: "Dataset"
         direction: "outgoing"
         field_mapping:
-          source_field: "datasets"
+          source_field: "datasets[]"
           source_entity_type: "DataProduct"
           source_urn_field: "urn"
           target_entity_type: "Dataset"
-          target_urn_field: "name"
+          target_urn_field: "urn"
   

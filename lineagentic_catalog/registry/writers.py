@@ -409,9 +409,26 @@ class Neo4jWriterGenerator:
                     base_field = base_field.strip('.')
                     sub_field = sub_field.strip('.')
                     
+                    # Try to get array data from aspect_data first, then from entity properties
                     array_data = aspect_data.get(base_field, [])
+                    print(f"   🔍 Looking for array field '{base_field}' in aspect_data: {array_data}")
                     if not isinstance(array_data, list):
-                        return
+                        # If not found in aspect_data, try to get from entity properties
+                        entity_props = self._get_entity_generic(entity_type, entity_urn)
+                        print(f"   🔍 Entity properties for {entity_type}:{entity_urn}: {entity_props}")
+                        if entity_props and base_field in entity_props:
+                            array_data = entity_props[base_field]
+                            print(f"   🔍 Found '{base_field}' in entity properties: {array_data}")
+                            if isinstance(array_data, str) and ',' in array_data:
+                                # Handle comma-separated string as array
+                                array_data = [item.strip() for item in array_data.split(',') if item.strip()]
+                                print(f"   🔍 Converted comma-separated string to array: {array_data}")
+                            elif not isinstance(array_data, list):
+                                array_data = [array_data] if array_data else []
+                                print(f"   🔍 Converted single value to array: {array_data}")
+                        else:
+                            print(f"   ⚠️ Field '{base_field}' not found in aspect_data or entity properties")
+                            return
                     
                     for item in array_data:
                         if sub_field:
@@ -426,7 +443,17 @@ class Neo4jWriterGenerator:
                                 entity_urn, entity_type, aspect_data, rule, field_value
                             )
                 else:
+                    # Try to get field value from aspect_data first, then from entity properties
                     field_value = aspect_data.get(source_field)
+                    print(f"   🔍 Looking for field '{source_field}' in aspect_data: {field_value}")
+                    if field_value is None:
+                        # If not found in aspect_data, try to get from entity properties
+                        entity_props = self._get_entity_generic(entity_type, entity_urn)
+                        print(f"   🔍 Entity properties for {entity_type}:{entity_urn}: {entity_props}")
+                        if entity_props and source_field in entity_props:
+                            field_value = entity_props[source_field]
+                            print(f"   🔍 Found '{source_field}' in entity properties: {field_value}")
+                    
                     if field_value:
                         # Handle comma-separated values generically
                         if isinstance(field_value, str) and ',' in field_value:
@@ -446,6 +473,7 @@ class Neo4jWriterGenerator:
             
             def _create_relationship_from_field_mapping(self, entity_urn: str, entity_type: str, aspect_data: Dict[str, Any], rule: Dict[str, Any], field_value: Any):
                 """Create a relationship based on field mapping rule"""
+                print(f"   🔗 Creating relationship with field_value: {field_value}")
                 rule_config = self.registry.get('relationship_rule_config', {})
                 relationship_type_field = rule_config.get('relationship_type_field', 'relationship_type')
                 source_entity_field = rule_config.get('source_entity_field', 'source_entity')
@@ -542,14 +570,32 @@ class Neo4jWriterGenerator:
                                 
                                 urn_params = {}
                                 
+                                # Generic template parameter resolution
+                                # Replace template variables with actual values
                                 if 'source_urn' in urn_template:
                                     urn_params['source_urn'] = entity_urn
                                 if 'source_field' in urn_template:
                                     urn_params['source_field'] = field_value
-                                if 'field_path' in urn_template:
-                                    urn_params['field_path'] = field_value
-                                if 'dataset_urn' in urn_template:
-                                    urn_params['dataset_urn'] = aspect_data.get('sourceDataset') or aspect_data.get('targetDataset')
+                                
+                                # Handle any other template variables by looking them up in aspect_data
+                                # This allows for generic field names like field_path, dataset_urn, etc.
+                                import re
+                                template_vars = re.findall(r'\{([^}]+)\}', urn_template)
+                                for param_name in template_vars:
+                                    if param_name not in urn_params:
+                                        # Try to find the parameter in aspect_data or use entity_urn as fallback
+                                        if param_name in aspect_data:
+                                            urn_params[param_name] = aspect_data[param_name]
+                                        elif param_name == 'source_urn' and entity_urn:
+                                            # Special case: for schemaMetadata, entity_urn is the source URN
+                                            urn_params[param_name] = entity_urn
+                                        elif param_name == 'dataset_urn' and entity_urn:
+                                            # Special case: for schemaMetadata, entity_urn is the dataset URN
+                                            urn_params[param_name] = entity_urn
+                                        elif param_name == 'source_field':
+                                            urn_params[param_name] = field_value
+                                        elif param_name == 'field_path':
+                                            urn_params[param_name] = field_value
                                 
 
                                 
@@ -616,13 +662,29 @@ class Neo4jWriterGenerator:
                 if urn_field in entity_properties:
                     props[urn_field] = field_value
                 
-                if '#' in entity_urn and 'field_path' in entity_properties:
+                # Generic URN parsing for entities that might have composite URNs
+                # This handles cases like "dataset_urn#field_path" format or "urn:li:column:(dataset_urn,field_path)"
+                if '#' in entity_urn:
                     parts = entity_urn.split('#', 1)
                     if len(parts) == 2:
-                        if 'dataset_urn' in entity_properties:
-                            props['dataset_urn'] = parts[0]
-                        if 'field_path' in entity_properties:
-                            props['field_path'] = parts[1]
+                        # Try to map parts to entity properties based on common patterns
+                        for prop in entity_properties:
+                            if 'dataset' in prop.lower() and 'urn' in prop.lower():
+                                props[prop] = parts[0]
+                            elif 'field' in prop.lower() or 'path' in prop.lower():
+                                props[prop] = parts[1]
+                elif 'urn:li:column:(' in entity_urn:
+                    # Handle Column URN format: urn:li:column:(dataset_urn,field_path)
+                    import re
+                    match = re.search(r'urn:li:column:\(([^,]+),([^)]+)\)', entity_urn)
+                    if match:
+                        dataset_urn = match.group(1)
+                        field_path = match.group(2)
+                        for prop in entity_properties:
+                            if 'dataset' in prop.lower() and 'urn' in prop.lower():
+                                props[prop] = dataset_urn
+                            elif 'field' in prop.lower() or 'path' in prop.lower():
+                                props[prop] = field_path
                 
                 self._upsert_entity_generic(entity_type, entity_urn, props)
         

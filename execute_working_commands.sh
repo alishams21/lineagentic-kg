@@ -28,7 +28,10 @@ curl -X POST "http://localhost:8000/api/v1/entities/DataProduct" \
     "purpose": "Customer behavior analysis and insights",
     "owner": "data_team",
     "upstream": "customer_data_pipeline",
-    "datasets": "customer_profiles,customer_segments"
+    "datasets": [
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_profiles,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_segments,PROD)"
+    ]
   }' | jq '.'
 
 echo ""
@@ -56,7 +59,39 @@ curl -X POST "http://localhost:8000/api/v1/entities/Dataset" \
   }' | jq '.'
 
 echo ""
-echo "4️⃣ Adding dpContract Aspect to DataProduct:"
+echo "4️⃣ Adding schemaMetadata to customer_profiles Dataset:"
+echo "-----------------------------------------------------"
+curl -X POST "http://localhost:8000/api/v1/aspects/schemaMetadata" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "Dataset",
+    "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_profiles,PROD)",
+    "schemaName": "customer_profiles_schema",
+    "platform": "snowflake",
+    "fields": [
+      {"fieldPath": "customer_id", "type": "VARCHAR", "description": "Unique customer identifier"},
+      {"fieldPath": "email", "type": "VARCHAR", "description": "Customer email address"}
+    ]
+  }' | jq '.'
+
+echo ""
+echo "5️⃣ Adding schemaMetadata to customer_segments Dataset:"
+echo "-----------------------------------------------------"
+curl -X POST "http://localhost:8000/api/v1/aspects/schemaMetadata" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "Dataset",
+    "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_segments,PROD)",
+    "schemaName": "customer_segments_schema",
+    "platform": "snowflake",
+    "fields": [
+      {"fieldPath": "customer_id", "type": "VARCHAR", "description": "Unique customer identifier"},
+      {"fieldPath": "segment_type", "type": "VARCHAR", "description": "Type of customer segment"}
+    ]
+  }' | jq '.'
+
+echo ""
+echo "6️⃣ Adding dpContract Aspect to DataProduct:"
 echo "-------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/dpContract" \
   -H "Content-Type: application/json" \
@@ -76,7 +111,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/dpContract" \
   }' | jq '.'
 
 echo ""
-echo "5️⃣ Adding dpObservability Aspect to DataProduct:"
+echo "7️⃣ Adding dpObservability Aspect to DataProduct:"
 echo "------------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/dpObservability" \
   -H "Content-Type: application/json" \
@@ -99,7 +134,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/dpObservability" \
   }' | jq '.'
 
 echo ""
-echo "6️⃣ Adding dpPolicy Aspect to DataProduct:"
+echo "8️⃣ Adding dpPolicy Aspect to DataProduct:"
 echo "----------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/dpPolicy" \
   -H "Content-Type: application/json" \
@@ -131,12 +166,12 @@ curl -X POST "http://localhost:8000/api/v1/aspects/dpPolicy" \
   }' | jq '.'
 
 echo ""
-echo "7️⃣ Getting DataProduct:"
+echo "9️⃣ Getting DataProduct:"
 echo "----------------------"
 curl -X GET "http://localhost:8000/api/v1/entities/DataProduct/urn:li:dataProduct:(analytics,customer_analytics_dp,PROD)" | jq '.'
 
 echo ""
-echo "8️⃣ Getting Aspect:"
+echo "🔟 Getting Aspect:"
 echo "-----------------"
 curl -X GET "http://localhost:8000/api/v1/aspects/dpContract/DataProduct/urn:li:dataProduct:(analytics,customer_analytics_dp,PROD)" | jq '.'
 
@@ -145,10 +180,14 @@ echo "✅ EXECUTION COMPLETED!"
 echo "======================"
 echo "✅ DataProduct created with new URN generator: urn:li:dataProduct:(domain,name,env)"
 echo "✅ 2 Connected Datasets created: customer_profiles, customer_segments"
+echo "✅ Schema metadata added to both datasets with 2 fields each:"
+echo "   - customer_profiles: customer_id, email"
+echo "   - customer_segments: customer_id, segment_type"
 echo "✅ 3 Aspects created for DataProduct (dpContract, dpObservability, dpPolicy)"
 echo "✅ HAS_CONTRACT relationships should be created between DataProduct and Datasets"
+echo "✅ HAS_COLUMN relationships should be created between Datasets and Columns"
 echo "✅ GET operations executed for both entities and aspects"
-echo "✅ DataProduct references 3 datasets: customer_events,customer_profiles,customer_segments"
+echo "✅ DataProduct references 2 datasets: customer_profiles, customer_segments"
 echo "✅ Rich metadata and configurations in aspects"
 echo ""
 echo "🌐 API Documentation: http://localhost:8000/docs"

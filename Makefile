@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help start-databases stop-databases stop-databases-and-clean-data clean-all-stack generate-mermaid-diagram
+.PHONY: help start-databases stop-databases stop-databases-and-clean-data clean-all-stack generate-mermaid-diagram run-api
 
 help:
 	@echo "🚀 Lineagentic Project"
@@ -16,6 +16,7 @@ help:
 	@echo "  - install-dev: Install development dependencies with uv"
 	@echo "  - lock-deps: Lock dependencies with uv"
 	@echo "  - sync-deps: Sync dependencies with uv"
+	@echo "  - run-api: Generate and run the API server"
 	@echo ""
 	@echo "📦 PyPI Publishing Commands:"
 	@echo "  - build-package: Build the PyPI package"
@@ -134,6 +135,33 @@ sync-deps:
 	@echo "🔄 Syncing dependencies with uv..."
 	@uv sync
 	@echo "✅ Dependencies synced!"
+
+# =============================================================================
+# API Generation and Execution ################################################
+# =============================================================================
+
+# Generate and run the API server
+run-api:
+	@echo "🚀 Generating and running API server..."
+	@echo "1️⃣ Syncing dependencies with uv..."
+	@uv sync
+	@echo "✅ Dependencies synced!"
+	@echo ""
+	@echo "2️⃣ Activating virtual environment..."
+	@source .venv/bin/activate || echo "⚠️  Virtual environment activation failed, continuing..."
+	@echo "✅ Environment activated!"
+	@echo ""
+	@echo "3️⃣ Generating API from registry..."
+	@generate-api
+	@echo "✅ API generated!"
+	@echo ""
+	@echo "4️⃣ Installing API dependencies..."
+	@cd generated_api && pip install -r requirements.txt
+	@echo "✅ API dependencies installed!"
+	@echo ""
+	@echo "5️⃣ Starting API server..."
+	@cd generated_api && python main.py
+	@echo "✅ API server started!"
 
 # =============================================================================
 # Generate Mermaid Diagram #####################################################

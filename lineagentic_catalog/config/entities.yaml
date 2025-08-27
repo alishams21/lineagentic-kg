@@ -13,6 +13,8 @@ entities:
       - owner
       - upstream
       - datasets
+    array_properties:
+      - datasets
     aspects:
       dpContract: versioned
       dpObservability: versioned

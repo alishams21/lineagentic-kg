@@ -141,6 +141,7 @@ class HealthResponse(BaseModel):
         entities = self.factory.registry.get('entities', {})
         for entity_name, entity_config in entities.items():
             properties = entity_config.get('properties', [])
+            array_properties = entity_config.get('array_properties', [])
             
             # Generate upsert request model
             models_content += f'''
@@ -151,7 +152,11 @@ class {entity_name}UpsertRequest(BaseModel):
             # Add entity-specific properties
             for prop in properties:
                 sanitized_prop = self._sanitize_field_name(prop)
-                models_content += f'''
+                if prop in array_properties:
+                    models_content += f'''
+    {sanitized_prop}: Optional[List[str]] = Field(None, description="{prop} (array)")'''
+                else:
+                    models_content += f'''
     {sanitized_prop}: Optional[str] = Field(None, description="{prop}")'''
             
             models_content += f'''
