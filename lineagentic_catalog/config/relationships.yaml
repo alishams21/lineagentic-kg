@@ -47,19 +47,7 @@ aspect_relationships:
   transformation:
     description: "Creates DERIVES_FROM, TRANSFORMS and UPSTREAM_OF relationships from transformation aspect data"
     rules:
-      - entity_type: "Column"
-        relationship_type: "DERIVES_FROM"
-        source_entity: "Column"
-        target_entity: "Column"
-        direction: "outgoing"
-        field_mapping:
-          source_field: "inputColumns[]"
-          source_entity_type: "Column"
-          source_urn_field: "urn"
-          target_entity_type: "Column"
-          target_urn_field: "urn"
-          source_urn_template: "{sourceDataset}#{source_field}"
-          target_urn_template: "{targetDataset}#{field_path}"
+
       - entity_type: "Column"
         relationship_type: "TRANSFORMS"
         source_entity: "Column"
@@ -71,8 +59,8 @@ aspect_relationships:
           source_urn_field: "urn"
           target_entity_type: "Column"
           target_urn_field: "urn"
-          source_urn_template: "{sourceDataset}#{source_field}"
-          target_urn_template: "{targetDataset}#{field_path}"
+          source_urn_template: "urn:li:column:({sourceDataset},{source_field})"
+          target_urn_template: "urn:li:column:({targetDataset},{field_path})"
         additional_relationships:
           - relationship_type: "UPSTREAM_OF"
             source_entity: "Dataset"
@@ -96,7 +84,7 @@ aspect_relationships:
           source_urn_field: "urn"
           target_entity_type: "Column"
           target_urn_field: "urn"
-          target_urn_template: "{dataset_urn}#{field_path}"
+          target_urn_template: "urn:li:column:({dataset_urn},{field_path})"
 
   dataJobInputOutput:
     description: "Creates CONSUMES and PRODUCES relationships from dataJobInputOutput aspect data"
