@@ -176,6 +176,45 @@ echo "-----------------"
 curl -X GET "http://localhost:8000/api/v1/aspects/dpContract/DataProduct/urn:li:dataProduct:(analytics,customer_analytics_dp,PROD)" | jq '.'
 
 echo ""
+echo "1️⃣1️⃣ Creating DataFlow:"
+echo "----------------------"
+curl -X POST "http://localhost:8000/api/v1/entities/DataFlow" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "platform": "analytics",
+    "flow_id": "customer_etl",
+    "env": "PROD"
+  }' | jq '.'
+
+echo ""
+echo "1️⃣2️⃣ Adding Transformation Relationship:"
+echo "----------------------------------------"
+curl -X POST "http://localhost:8000/api/v1/aspects/dataJobInputOutput" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "DataJob",
+    "entity_urn": "urn:li:dataJob:(urn:li:dataFlow:(analytics,customer_etl,PROD),customer_id_extraction)",
+    "inputs": ["urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_profiles,PROD)"],
+    "outputs": ["urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_segments,PROD)"]
+  }' | jq '.'
+
+echo ""
+echo "1️⃣3️⃣ Adding Column Transformation:"
+echo "----------------------------------"
+curl -X POST "http://localhost:8000/api/v1/aspects/transformation" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "Column",
+    "entity_urn": "urn:li:column:(urn_li_dataset_urn_li_dataPlatform_snowflake_customer_segments_PROD_,customer_id)",
+    "inputColumns": ["email"],
+    "transformationType": "hash_extraction",
+    "sourceDataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_profiles,PROD)",
+    "targetDataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_segments,PROD)",
+    "steps": ["Extract customer_id from email using hash function"],
+    "notes": "Customer ID is derived from email address for privacy"
+  }' | jq '.'
+
+echo ""
 echo "✅ EXECUTION COMPLETED!"
 echo "======================"
 echo "✅ DataProduct created with new URN generator: urn:li:dataProduct:(domain,name,env)"
@@ -186,8 +225,11 @@ echo "   - customer_segments: customer_id, segment_type"
 echo "✅ 3 Aspects created for DataProduct (dpContract, dpObservability, dpPolicy)"
 echo "✅ HAS_CONTRACT relationships should be created between DataProduct and Datasets"
 echo "✅ HAS_COLUMN relationships should be created between Datasets and Columns"
+echo "✅ TRANSFORMS relationships should be created between Columns (email → customer_id)"
+echo "✅ CONSUMES/PRODUCES relationships should be created between DataJob and Datasets"
 echo "✅ GET operations executed for both entities and aspects"
 echo "✅ DataProduct references 2 datasets: customer_profiles, customer_segments"
+echo "✅ Transformation: customer_id in customer_segments derived from email in customer_profiles"
 echo "✅ Rich metadata and configurations in aspects"
 echo ""
 echo "🌐 API Documentation: http://localhost:8000/docs"
