@@ -73,6 +73,10 @@ class APIGenerator:
         try:
             self.logger.info("Generating FastAPI files from RegistryFactory...")
             
+            # Copy config files first
+            self.logger.debug("Copying config files")
+            self._copy_config_files()
+            
             # Generate files
             self.logger.debug("Generating models.py")
             self._generate_models()
@@ -689,9 +693,10 @@ class FactoryWrapper:
         # Try multiple possible registry paths
         possible_paths = [
             os.getenv("REGISTRY_PATH"),
+            "config/main_registry.yaml",  # Local config directory (copied during generation)
+            os.path.join(os.path.dirname(__file__), "config", "main_registry.yaml"),  # Relative to this file
             "../config/main_registry.yaml",
             "../../config/main_registry.yaml",
-            "config/main_registry.yaml",
             os.path.join(os.path.dirname(__file__), "..", "config", "main_registry.yaml"),
             os.path.join(os.path.dirname(__file__), "..", "..", "config", "main_registry.yaml")
         ]
@@ -901,12 +906,92 @@ python main.py
 - `factory_wrapper.py` - RegistryFactory wrapper for dependency injection
 - `requirements.txt` - Python dependencies
 - `README.md` - This file
+- `config/` - Directory containing all required YAML configuration files
 '''
         
         with open(self.output_dir / "README.md", "w") as f:
             f.write(readme_content)
         
         print(f"✅ Generated README.md")
+
+    def _copy_config_files(self):
+        """Copy required YAML config files to the generated API directory"""
+        log_function_call(self.logger, "_copy_config_files")
+        
+        try:
+            # Create config directory in output
+            config_dir = self.output_dir / "config"
+            config_dir.mkdir(exist_ok=True)
+            
+            # Get the source config directory path
+            # Try to find the config directory relative to the registry path
+            registry_path = Path(self.registry_path)
+            source_config_dir = None
+            
+            # Try different possible locations for the config directory
+            possible_paths = [
+                registry_path.parent,  # Same directory as registry file
+                Path("lineagentic_catalog/config"),  # Relative to current working directory
+                Path(__file__).parent.parent / "config",  # Relative to this file
+            ]
+            
+            for path in possible_paths:
+                if path.exists() and (path / "main_registry.yaml").exists():
+                    source_config_dir = path
+                    break
+            
+            if not source_config_dir:
+                # If we can't find the config directory, try to copy from the package
+                import lineagentic_catalog
+                package_dir = Path(lineagentic_catalog.__file__).parent
+                source_config_dir = package_dir / "config"
+            
+            if not source_config_dir.exists():
+                self.logger.warning("Could not find source config directory", 
+                                  source_config_dir=str(source_config_dir))
+                return
+            
+            self.logger.info("Copying config files", 
+                           source_dir=str(source_config_dir), 
+                           target_dir=str(config_dir))
+            
+            # List of required YAML files to copy
+            required_files = [
+                "main_registry.yaml",
+                "entities.yaml", 
+                "aspects.yaml",
+                "relationships.yaml",
+                "urn_patterns.yaml",
+                "utilities.yaml",
+                "core.yaml"
+            ]
+            
+            copied_files = []
+            for filename in required_files:
+                source_file = source_config_dir / filename
+                target_file = config_dir / filename
+                
+                if source_file.exists():
+                    import shutil
+                    shutil.copy2(source_file, target_file)
+                    copied_files.append(filename)
+                    self.logger.debug("Copied config file", 
+                                    source=str(source_file), 
+                                    target=str(target_file))
+                else:
+                    self.logger.warning("Config file not found", 
+                                      filename=filename, 
+                                      source_dir=str(source_config_dir))
+            
+            self.logger.info("Config files copied successfully", 
+                           copied_files=copied_files,
+                           total_files=len(copied_files))
+            
+            print(f"✅ Copied {len(copied_files)} config files to {config_dir}")
+            
+        except Exception as e:
+            log_error_with_context(self.logger, e, "_copy_config_files")
+            self.logger.warning("Failed to copy config files, continuing with generation")
 
 
 def main():

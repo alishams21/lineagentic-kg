@@ -30,6 +30,7 @@ def main():
     
     print(f"\n🎉 API generation complete!")
     print(f"📂 Generated files are in: {output_dir}")
+    print(f"📋 Config files copied to: {output_dir}/config/")
     print(f"\nTo run the generated API:")
     print(f"cd {output_dir}")
     print(f"pip install -r requirements.txt")
