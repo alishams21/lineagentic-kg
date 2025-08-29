@@ -173,4 +173,77 @@ aspects:
       urn_generator: "dataset"
       required_params: ["platform", "name"]
       optional_params: ["env"]
+
+  dpContract:
+    type: versioned
+    properties:
+      - output_port_name
+      - output_port_type
+      - fields
+      - consumer_port_name
+      - consumer_port_type
+      - freshness
+      - slack_channel
+      - sla
+    required: ["output_port_name", "output_port_type", "fields"]
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name", "domain"]
+      optional_params: []
+
+  dpObservability:
+    type: versioned
+    properties:
+      - metrics
+      - alerting_rules
+      - dashboard_url
+    required: ["metrics"]
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name", "domain"]
+      optional_params: []
+
+  dpPolicy:
+    type: versioned
+    properties:
+      - access_control
+      - data_masking
+      - quality_gate
+      - retention_policy
+      - evaluation_points
+    required: ["access_control"]
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name", "domain"]
+      optional_params: []
+
+  dpProvisioner:
+    type: versioned
+    properties:
+      - platform
+      - environment
+      - compute_resource
+      - storage_resource
+      - deployment_strategy
+    required: ["platform", "environment"]
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name", "domain"]
+      optional_params: []
+
+  dpOwnership:
+    type: versioned
+    properties:
+      - owners
+      - lastModified
+    required: ["owners"]
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name", "domain"]
+      optional_params: []
  

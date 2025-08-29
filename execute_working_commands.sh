@@ -593,10 +593,161 @@ echo "------------------------------"
 curl -X GET "http://localhost:8000/api/v1/entities/Dataset/urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)" | jq '.'
 
 echo ""
+echo "2️⃣7️⃣ Creating DataProduct Entity (customer_analytics_product):"
+echo "------------------------------------------------------------"
+curl -X POST "http://localhost:8000/api/v1/entities/DataProduct" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "customer_analytics_product",
+    "domain": "customer_analytics",
+    "purpose": "Provides anonymized customer data for analytics and reporting"
+  }' | jq '.'
+
+echo ""
+echo "2️⃣8️⃣ Adding dpOwnership to DataProduct:"
+echo "-------------------------------------"
+curl -X POST "http://localhost:8000/api/v1/aspects/dpOwnership" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "DataProduct",
+    "entity_urn": "urn:li:dataProduct:(customer_analytics,customer_analytics_product,PROD)",
+    "owners": [
+      {"owner": "analytics_team", "type": "PRODUCT_OWNER"},
+      {"owner": "data_engineering_team", "type": "TECHNICAL_OWNER"}
+    ],
+    "lastModified": "2024-01-15T10:00:00Z"
+  }' | jq '.'
+
+echo ""
+echo "2️⃣9️⃣ Adding dpContract to DataProduct:"
+echo "-----------------------------------"
+curl -X POST "http://localhost:8000/api/v1/aspects/dpContract" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "DataProduct",
+    "entity_urn": "urn:li:dataProduct:(customer_analytics,customer_analytics_product,PROD)",
+    "output_port_name": "customer_analytics_port",
+    "output_port_type": "dataset",
+    "fields": [
+      {
+        "name": "customer_id",
+        "type": "VARCHAR(64)",
+        "description": "Hashed customer identifier",
+        "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)"
+      }
+    ],
+    "consumer_port_name": "analytics_consumer",
+    "consumer_port_type": "api",
+    "freshness": "daily",
+    "slack_channel": "#customer-analytics",
+    "sla": "99.9% uptime, 24h freshness"
+  }' | jq '.'
+
+echo ""
+echo "3️⃣0️⃣ Adding dpObservability to DataProduct:"
+echo "----------------------------------------"
+curl -X POST "http://localhost:8000/api/v1/aspects/dpObservability" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "DataProduct",
+    "entity_urn": "urn:li:dataProduct:(customer_analytics,customer_analytics_product,PROD)",
+    "metrics": {
+      "data_freshness": "last_updated_timestamp",
+      "data_quality_score": "quality_metrics",
+      "api_response_time": "avg_response_time_ms",
+      "error_rate": "error_percentage"
+    },
+    "alerting_rules": [
+      {
+        "name": "data_freshness_alert",
+        "condition": "last_updated > 24h",
+        "severity": "critical",
+        "channel": "#data-alerts"
+      },
+      {
+        "name": "quality_score_alert",
+        "condition": "quality_score < 90",
+        "severity": "warning",
+        "channel": "#data-alerts"
+      }
+    ],
+    "dashboard_url": "https://grafana.company.com/d/customer-analytics-product"
+  }' | jq '.'
+
+echo ""
+echo "3️⃣1️⃣ Adding dpPolicy to DataProduct:"
+echo "--------------------------------"
+curl -X POST "http://localhost:8000/api/v1/aspects/dpPolicy" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "DataProduct",
+    "entity_urn": "urn:li:dataProduct:(customer_analytics,customer_analytics_product,PROD)",
+    "access_control": {
+      "authentication": "oauth2",
+      "authorization": "role_based",
+      "allowed_roles": ["analytics_user", "data_scientist", "business_analyst"]
+    },
+    "data_masking": {
+      "enabled": true,
+      "masking_rules": ["no_pii_exposure", "hash_customer_ids"]
+    },
+    "quality_gate": {
+      "enabled": true,
+      "thresholds": {
+        "completeness": 95.0,
+        "accuracy": 90.0,
+        "freshness": 24
+      }
+    },
+    "retention_policy": {
+      "data_retention_days": 365,
+      "backup_retention_days": 730
+    },
+    "evaluation_points": [
+      "data_ingestion",
+      "data_processing",
+      "data_delivery"
+    ]
+  }' | jq '.'
+
+echo ""
+echo "3️⃣2️⃣ Adding dpProvisioner to DataProduct:"
+echo "-------------------------------------"
+curl -X POST "http://localhost:8000/api/v1/aspects/dpProvisioner" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "DataProduct",
+    "entity_urn": "urn:li:dataProduct:(customer_analytics,customer_analytics_product,PROD)",
+    "platform": "snowflake",
+    "environment": "production",
+    "compute_resource": {
+      "warehouse": "ANALYTICS_WH",
+      "size": "medium",
+      "auto_suspend": 300
+    },
+    "storage_resource": {
+      "database": "CUSTOMER_ANALYTICS_DB",
+      "schema": "PUBLIC",
+      "table": "CUSTOMER_ANALYTICS_PRODUCT"
+    },
+    "deployment_strategy": {
+      "type": "blue_green",
+      "rollback_enabled": true,
+      "health_checks": ["data_quality", "api_availability"]
+    }
+  }' | jq '.'
+
+echo ""
+echo "3️⃣3️⃣ Getting DataProduct:"
+echo "------------------------"
+curl -X GET "http://localhost:8000/api/v1/entities/DataProduct/urn:li:dataProduct:(customer_analytics,customer_analytics_product,PROD)" | jq '.'
+
+echo ""
 echo "✅ DATA LINEAGE SCENARIO COMPLETED!"
 echo "=================================="
 echo "✅ Raw Dataset created: customer_raw_data"
 echo "✅ Processed Dataset created: customer_processed_data"
+echo "✅ DataProduct created: customer_analytics_product"
 echo "✅ All aspects added to both datasets:"
 echo "   - datasetProperties (description, tags, custom properties)"
 echo "   - schemaMetadata (schema definition with fields)"
@@ -609,13 +760,20 @@ echo "   - Raw: customer_email (contains PII)"
 echo "   - Processed: customer_id (anonymized)"
 echo "✅ columnProperties added to both columns"
 echo "✅ columnTransformation added to processed column"
+echo "✅ DataProduct aspects added:"
+echo "   - dpOwnership (product and technical owners)"
+echo "   - dpContract (output port, fields, SLA)"
+echo "   - dpObservability (metrics, alerts, dashboard)"
+echo "   - dpPolicy (access control, quality gates, retention)"
+echo "   - dpProvisioner (infrastructure, deployment)"
 echo "✅ Relationships should be automatically created:"
 echo "   - HAS_COLUMN: Dataset → Column"
 echo "   - TRANSFORMS: Column → Column (customer_email → customer_id)"
 echo "   - DOWNSTREAM_OF: Dataset → Dataset (raw → processed)"
+echo "   - IMPLEMENTS_CONTRACT: Dataset → DataProduct (via dpContract)"
 echo "✅ All URNs auto-generated by backend"
 echo ""
 echo "🌐 API Documentation: http://localhost:8000/docs"
 echo "📁 Generated API Location: generated_api/"
 echo ""
-echo "🎯 Raw to Processed Data Lineage Successfully Created!"
+echo "🎯 Raw to Processed Data Lineage with DataProduct Successfully Created!"

@@ -55,3 +55,17 @@ entities:
     aspects:
       columnProperties: versioned
       columnTransformation: versioned
+
+  DataProduct:
+    key: dataProductKey
+    urn_generator: dataProduct
+    properties:
+      - name
+      - domain
+      - purpose
+    aspects:
+      dpOwnership: versioned
+      dpContract: versioned
+      dpObservability: versioned
+      dpPolicy: versioned
+      dpProvisioner: versioned

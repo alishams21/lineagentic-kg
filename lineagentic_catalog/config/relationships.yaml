@@ -119,6 +119,22 @@ aspect_relationships:
           target_entity_type: "CorpGroup"
           target_urn_field: "name"
 
+  dpContract:
+    description: "Creates IMPLEMENTS_CONTRACT relationships from dpContract aspect data"
+    rules:
+      - entity_type: "DataProduct"
+        relationship_type: "IMPLEMENTS_CONTRACT"
+        source_entity: "Dataset"
+        target_entity: "DataProduct"
+        direction: "incoming"
+        field_mapping:
+          source_field: "fields[].dataset_urn"
+          source_entity_type: "Dataset"
+          source_urn_field: "urn"
+          target_entity_type: "DataProduct"
+          target_urn_field: "urn"
+          use_direct_urns: true
+
 
   
 
