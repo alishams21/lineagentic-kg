@@ -3,89 +3,7 @@
 
 # Aspect Definitions
 aspects:
-  dpContract:
-    type: versioned
-    properties:
-      - output_name
-      - output_type
-      - fields
-      - sink_location
-      - freshness
-    entity_creation:
-      entity_type: "DataProduct"
-      urn_generator: "dataProduct"
-      required_params: ["name","domain"]
-      optional_params: []
-  dpObservability:
-    type: versioned
-    properties:
-      - metrics_config
-      - alerting_rules
-      - dashboard_config
-    entity_creation:
-      entity_type: "DataProduct"
-      urn_generator: "dataProduct"
-      required_params: ["name","domain"]
-      optional_params: []
-  dpPolicy:
-    type: versioned
-    properties:
-      - access_control
-      - data_masking
-      - quality_gate
-      - retention_policy
-      - evaluation_points
-    entity_creation:
-      entity_type: "DataProduct"
-      urn_generator: "dataProduct"
-      required_params: ["name","domain"]
-      optional_params: []
-  dpProvisioner:
-    type: versioned
-    properties:
-      - platform
-      - environment
-      - compute_resource
-      - storage_resource
-      - deployment_strategy
-    entity_creation:
-      entity_type: "DataProduct"
-      urn_generator: "dataProduct"
-      required_params: ["name","domain"]
-      optional_params: []
-  corpUserInfo:
-    type: versioned
-    properties:
-      - active
-      - displayName
-      - email
-      - title
-      - department
-      - managerUrn
-      - skills
-    required: ["active", "displayName", "email"]
-    defaults:
-      active: true
-    # Entity creation parameters for independent ingestion
-    entity_creation:
-      entity_type: "CorpUser"
-      urn_generator: "corpUser"
-      required_params: ["username"]
-      optional_params: []
-  
-  corpGroupInfo:
-    type: versioned
-    properties:
-      - name
-      - description
-      - email
-      - slackChannel
-    required: ["name"]
-    entity_creation:
-      entity_type: "CorpGroup"
-      urn_generator: "corpGroup"
-      required_params: ["name"]
-      optional_params: []
+
   
   datasetProperties:
     type: versioned
@@ -121,6 +39,7 @@ aspects:
     type: versioned
     properties:
       - owners
+      - groupOwners
       - lastModified
     required: ["owners"]
     # Ownership can be attached to multiple entity types
@@ -158,121 +77,44 @@ aspects:
       urn_generator: "dataset"
       required_params: ["platform", "name"]
       optional_params: ["env"]
-  
-  dataFlowInfo:
+
+  corpUserInfo:
     type: versioned
     properties:
-      - name
-      - namespace
+      - active
+      - displayName
+      - email
+      - title
+      - managerUrn
+      - departmentId
+      - departmentName
+      - firstName
+      - lastName
+      - fullName
+      - countryCode
+    required: ["active", "displayName", "email"]
+    entity_creation:
+      entity_type: "CorpUser"
+      urn_generator: "corpUser"
+      required_params: ["username"]
+      optional_params: []
+
+  corpGroupInfo:
+    type: versioned
+    properties:
+      - displayName
       - description
-      - version
-      - jobs
-    required: ["name", "namespace"]
-  
-  dataJobInfo:
-    type: versioned
-    properties:
-      - name
-      - namespace
-      - versionId
-      - integration
-      - processingType
-      - jobType
-      - description
-    required: ["name", "namespace"]
+      - email
+      - admins
+      - members
+      - groups
+    required: ["displayName"]
     entity_creation:
-      entity_type: "DataJob"
-      urn_generator: "dataJob"
-      required_params: ["flow_urn", "job_name"]
+      entity_type: "CorpGroup"
+      urn_generator: "corpGroup"
+      required_params: ["name"]
       optional_params: []
-  
-  documentation:
-    type: versioned
-    properties:
-      - description
-      - contentType
-      - content
-    required: ["description"]
-    # Documentation is typically attached to DataJob entities
-    entity_creation:
-      entity_type: "DataJob"
-      urn_generator: "dataJob"
-      required_params: ["flow_urn", "job_name"]
-      optional_params: []
-  
-  sourceCodeLocation:
-    type: versioned
-    properties:
-      - type
-      - url
-      - repo
-      - branch
-      - path
-    required: ["type", "url"]
-    # Source code location is typically attached to DataJob entities
-    entity_creation:
-      entity_type: "DataJob"
-      urn_generator: "dataJob"
-      required_params: ["flow_urn", "job_name"]
-      optional_params: []
-  
-  sourceCode:
-    type: versioned
-    properties:
-      - language
-      - snippet
-      - fullCode
-    required: ["language"]
-    # Source code is typically attached to DataJob entities
-    entity_creation:
-      entity_type: "DataJob"
-      urn_generator: "dataJob"
-      required_params: ["flow_urn", "job_name"]
-      optional_params: []
-  
-  environmentProperties:
-    type: versioned
-    properties:
-      - env
-      - config
-    required: ["env"]
-    # Environment properties are typically attached to DataJob entities
-    entity_creation:
-      entity_type: "DataJob"
-      urn_generator: "dataJob"
-      required_params: ["flow_urn", "job_name"]
-      optional_params: []
-  
-  dataJobInputOutput:
-    type: versioned
-    properties:
-      - inputs
-      - outputs
-    required: ["inputs", "outputs"]
-    # Data job I/O is typically attached to DataJob entities
-    entity_creation:
-      entity_type: "DataJob"
-      urn_generator: "dataJob"
-      required_params: ["flow_urn", "job_name"]
-      optional_params: []
-  
-  dataJobRun:
-    type: timeseries
-    properties:
-      - eventType
-      - runId
-      - parent
-      - status
-      - startTime
-      - endTime
-    required: ["eventType", "runId"]
-    # Data job runs are typically attached to DataJob entities
-    entity_creation:
-      entity_type: "DataJob"
-      urn_generator: "dataJob"
-      required_params: ["flow_urn", "job_name"]
-      optional_params: []
-  
+
   columnProperties:
     type: versioned
     properties:
@@ -280,23 +122,128 @@ aspects:
       - dataType
       - nullable
       - defaultValue
+      - customProperties
     required: ["dataType"]
     entity_creation:
       entity_type: "Column"
       urn_generator: "column"
       required_params: ["dataset_urn", "field_path"]
       optional_params: []
-  
-  transformation:
+
+  columnTransformation:
     type: versioned
     properties:
       - inputColumns
-      - steps
-      - notes
+      - transformType
+      - transformScript
+      - sourceDataset
+    required: ["inputColumns", "transformType"]
+    entity_creation:
+      entity_type: "Column"
+      urn_generator: "column"
+      required_params: ["dataset_urn", "field_path"]
+      optional_params: []
+
+  datasetTransformation:
+    type: versioned
+    properties:
       - sourceDataset
       - targetDataset
       - transformationType
-    required: ["inputColumns", "transformationType"]
-    defaults:
-      sourceDataset: null
-      targetDataset: null
+      - description
+    required: ["sourceDataset", "targetDataset"]
+    entity_creation:
+      entity_type: "Dataset"
+      urn_generator: "dataset"
+      required_params: ["platform", "name"]
+      optional_params: ["env"]
+
+  dataQuality:
+    type: versioned
+    properties:
+      - qualityScore
+      - qualityMetrics
+      - lastValidated
+      - validationRules
+      - dataQualityIssues
+      - qualityChecks
+    required: ["qualityScore", "lastValidated"]
+    entity_creation:
+      entity_type: "Dataset"
+      urn_generator: "dataset"
+      required_params: ["platform", "name"]
+      optional_params: ["env"]
+
+  dpContract:
+    type: versioned
+    properties:
+      - output_port_name
+      - output_port_type
+      - fields
+      - consumer_port_name
+      - consumer_port_type
+      - freshness
+      - slack_channel
+      - sla
+    required: ["output_port_name", "output_port_type", "fields"]
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name", "domain"]
+      optional_params: []
+
+  dpObservability:
+    type: versioned
+    properties:
+      - metrics
+      - alerting_rules
+      - dashboard_url
+    required: ["metrics"]
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name", "domain"]
+      optional_params: []
+
+  dpPolicy:
+    type: versioned
+    properties:
+      - access_control
+      - data_masking
+      - quality_gate
+      - retention_policy
+      - evaluation_points
+    required: ["access_control"]
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name", "domain"]
+      optional_params: []
+
+  dpProvisioner:
+    type: versioned
+    properties:
+      - platform
+      - environment
+      - compute_resource
+      - storage_resource
+      - deployment_strategy
+    required: ["platform", "environment"]
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name", "domain"]
+      optional_params: []
+
+  dpOwnership:
+    type: versioned
+    properties:
+      - owners
+      - lastModified
+    required: ["owners"]
+    entity_creation:
+      entity_type: "DataProduct"
+      urn_generator: "dataProduct"
+      required_params: ["name", "domain"]
+      optional_params: []
+ 

@@ -3,6 +3,14 @@
 
 # Utility function definitions - completely generic
 utility_functions:
+  data_platform_urn:
+    type: "urn_generation"
+    description: "Generate data platform URN"
+    parameters: ["platform"]
+    implementation:
+      operation: "string_format"
+      template: "urn:li:dataPlatform:{platform}"
+  
   sanitize_id:
     type: "string_processing"
     description: "Sanitize string by removing invalid characters"

@@ -4,7 +4,7 @@
 # Aspect-Driven Relationship Rules
 aspect_relationships:
   ownership:
-    description: "Creates OWNS relationships from ownership aspect data"
+    description: "Creates OWNS and GROUP_OWNS relationships from ownership aspect data"
     rules:
       - entity_type: "Dataset"
         relationship_type: "OWNS"
@@ -17,16 +17,16 @@ aspect_relationships:
           source_urn_field: "username"
           target_entity_type: "Dataset"
           target_urn_field: "urn"
-      - entity_type: "DataJob"
-        relationship_type: "OWNS"
-        source_entity: "CorpUser"
-        target_entity: "DataJob"
+      - entity_type: "Dataset"
+        relationship_type: "GROUP_OWNS"
+        source_entity: "CorpGroup"
+        target_entity: "Dataset"
         direction: "incoming"
         field_mapping:
-          source_field: "owners[].owner"
-          source_entity_type: "CorpUser"
-          source_urn_field: "username"
-          target_entity_type: "DataJob"
+          source_field: "groupOwners[].group"
+          source_entity_type: "CorpGroup"
+          source_urn_field: "name"
+          target_entity_type: "Dataset"
           target_urn_field: "urn"
 
   globalTags:
@@ -44,10 +44,9 @@ aspect_relationships:
           target_entity_type: "Tag"
           target_urn_field: "key"
 
-  transformation:
-    description: "Creates DERIVES_FROM, TRANSFORMS and UPSTREAM_OF relationships from transformation aspect data"
+  columnTransformation:
+    description: "Creates TRANSFORMS relationships from columnTransformation aspect data"
     rules:
-
       - entity_type: "Column"
         relationship_type: "TRANSFORMS"
         source_entity: "Column"
@@ -59,16 +58,34 @@ aspect_relationships:
           source_urn_field: "urn"
           target_entity_type: "Column"
           target_urn_field: "urn"
-          source_urn_template: "urn:li:column:({sourceDataset},{source_field})"
-          target_urn_template: "urn:li:column:({targetDataset},{field_path})"
-        additional_relationships:
-          - relationship_type: "UPSTREAM_OF"
-            source_entity: "Dataset"
-            target_entity: "Dataset"
-            direction: "outgoing"
-            field_mapping:
-              source_field: "sourceDataset"
-              target_field: "targetDataset"
+          # Use direct URN construction instead of templates
+          use_direct_urns: true
+          # Add transformation properties to the relationship
+          relationship_properties:
+            transformType: "transformType"
+            transformScript: "transformScript"
+            sourceDataset: "sourceDataset"
+
+  datasetTransformation:
+    description: "Creates DOWNSTREAM_OF relationships from datasetTransformation aspect data"
+    rules:
+      # Rule that creates DOWNSTREAM_OF relationship from targetDataset to sourceDataset
+      # The processed dataset (targetDataset) is downstream of the raw dataset (sourceDataset)
+      - entity_type: "Dataset"
+        relationship_type: "DOWNSTREAM_OF"
+        source_entity: "Dataset"
+        target_entity: "Dataset"
+        direction: "outgoing"
+        field_mapping:
+          # Map targetDataset as source and sourceDataset as target
+          # This creates: targetDataset -> DOWNSTREAM_OF -> sourceDataset
+          source_field: "targetDataset"
+          source_entity_type: "Dataset"
+          source_urn_field: "urn"
+          target_entity_type: "Dataset"
+          target_urn_field: "urn"
+          # Explicitly specify that we're using direct URNs, not templates
+          use_direct_urns: true
 
   schemaMetadata:
     description: "Creates HAS_COLUMN relationships from schemaMetadata aspect data"
@@ -84,64 +101,41 @@ aspect_relationships:
           source_urn_field: "urn"
           target_entity_type: "Column"
           target_urn_field: "urn"
-          target_urn_template: "urn:li:column:({dataset_urn},{field_path})"
+          # Use direct URN construction for columns
+          use_direct_urns: true
 
-  dataJobInputOutput:
-    description: "Creates CONSUMES and PRODUCES relationships from dataJobInputOutput aspect data"
+  corpGroupInfo:
+    description: "Creates MEMBER_OF relationships from corpGroupInfo aspect data"
     rules:
-      - entity_type: "DataJob"
-        relationship_type: "CONSUMES"
-        source_entity: "DataJob"
-        target_entity: "Dataset"
-        direction: "outgoing"
-        field_mapping:
-          source_field: "inputs[]"
-          source_entity_type: "DataJob"
-          source_urn_field: "urn"
-          target_entity_type: "Dataset"
-          target_urn_field: "urn"
-      - entity_type: "DataJob"
-        relationship_type: "PRODUCES"
-        source_entity: "DataJob"
-        target_entity: "Dataset"
-        direction: "outgoing"
-        field_mapping:
-          source_field: "outputs[]"
-          source_entity_type: "DataJob"
-          source_urn_field: "urn"
-          target_entity_type: "Dataset"
-          target_urn_field: "urn"
-
-  dataJobCreation:
-    description: "Creates HAS_JOB relationships when DataJob entities are created"
-    rules:
-      - entity_type: "DataJob"
-        relationship_type: "HAS_JOB"
-        source_entity: "DataFlow"
-        target_entity: "DataJob"
+      - entity_type: "CorpGroup"
+        relationship_type: "MEMBER_OF"
+        source_entity: "CorpUser"
+        target_entity: "CorpGroup"
         direction: "incoming"
         field_mapping:
-          source_field: "flow_urn"
-          source_entity_type: "DataFlow"
-          source_urn_field: "urn"
-          target_entity_type: "DataJob"
-          target_urn_field: "urn"
+          source_field: "members[]"
+          source_entity_type: "CorpUser"
+          source_urn_field: "username"
+          target_entity_type: "CorpGroup"
+          target_urn_field: "name"
 
-  
-
-  
   dpContract:
-    description: "Create HAS_CONTRACT relationship from dpContract aspect data"
+    description: "Creates IMPLEMENTS_CONTRACT relationships from dpContract aspect data"
     rules:
       - entity_type: "DataProduct"
-        relationship_type: "HAS_CONTRACT"
-        source_entity: "DataProduct"
-        target_entity: "Dataset"
-        direction: "outgoing"
+        relationship_type: "IMPLEMENTS_CONTRACT"
+        source_entity: "Dataset"
+        target_entity: "DataProduct"
+        direction: "incoming"
         field_mapping:
-          source_field: "datasets[]"
-          source_entity_type: "DataProduct"
+          source_field: "fields[].dataset_urn"
+          source_entity_type: "Dataset"
           source_urn_field: "urn"
-          target_entity_type: "Dataset"
+          target_entity_type: "DataProduct"
           target_urn_field: "urn"
+          use_direct_urns: true
+
+
   
+
+

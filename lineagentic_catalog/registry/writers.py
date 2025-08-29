@@ -475,7 +475,8 @@ class Neo4jWriterGenerator:
                     
                     if field_value:
                         # Handle comma-separated values generically
-                        if isinstance(field_value, str) and ',' in field_value:
+                        # BUT: Don't split URNs that contain commas as part of their structure
+                        if isinstance(field_value, str) and ',' in field_value and not field_value.startswith('urn:'):
                             values = [v.strip() for v in field_value.split(",") if v.strip()]
                             for value in values:
                                 self._create_relationship_from_field_mapping(
@@ -514,7 +515,8 @@ class Neo4jWriterGenerator:
                 
                 if field_value:
                     # Handle comma-separated values generically
-                    if isinstance(field_value, str) and ',' in field_value:
+                    # BUT: Don't split URNs that contain commas as part of their structure
+                    if isinstance(field_value, str) and ',' in field_value and not field_value.startswith('urn:'):
                         values = [v.strip() for v in field_value.split(",") if v.strip()]
                         for value in values:
                             self._create_relationship_from_entity_field_mapping(
@@ -597,7 +599,18 @@ class Neo4jWriterGenerator:
                     target_urn = entity_urn
                 
                 if source_urn and target_urn:
-                    self._ensure_entity_exists(target_entity_type, target_urn, field_value, target_urn_field)
+                    # Only ensure entity exists if the URN looks like it might be incomplete
+                    # If it's a complete URN (starts with urn:), don't create placeholder
+                    if not target_urn.startswith('urn:'):
+                        self._ensure_entity_exists(target_entity_type, target_urn, field_value, target_urn_field)
+                    
+                    # Extract relationship properties from aspect data if specified
+                    relationship_props = {}
+                    if 'relationship_properties' in field_mapping:
+                        for prop_name, aspect_field in field_mapping['relationship_properties'].items():
+                            if aspect_field in aspect_data:
+                                relationship_props[prop_name] = aspect_data[aspect_field]
+                    
                     # Check if relationship already exists to prevent duplicates
                     with self._driver.session() as s:
                         result = s.run(
@@ -605,7 +618,7 @@ class Neo4jWriterGenerator:
                             source_urn=source_urn, target_urn=target_urn
                         )
                         if not result.single():
-                            self._create_relationship_generic(source_entity_type, source_urn, relationship_type, target_entity_type, target_urn, {})
+                            self._create_relationship_generic(source_entity_type, source_urn, relationship_type, target_entity_type, target_urn, relationship_props)
                         else:
                             print(f"   ℹ️ Relationship {relationship_type} already exists between {source_urn} and {target_urn}")
                 else:
@@ -640,6 +653,18 @@ class Neo4jWriterGenerator:
             def _resolve_target_urn(self, field_value: Any, target_entity_type: str, target_urn_field: str, aspect_data: Dict[str, Any], field_mapping: Dict[str, Any], entity_urn: str = None) -> str:
                 """Resolve target URN based on field mapping"""
                 rule_config = self.registry.get('relationship_rule_config', {})
+                
+                # Special handling for Column entities - always construct proper column URNs
+                if target_entity_type == 'Column' and entity_urn and field_value:
+                    # Direct URN construction for columns: urn:li:column:(dataset_urn,field_path)
+                    return f"urn:li:column:({entity_urn},{field_value})"
+                
+                # Check if we should use direct URN construction for other cases
+                if field_mapping.get('use_direct_urns', False):
+                    if target_entity_type == 'Dataset':
+                        # For datasets, if field_value is already a complete URN, return it directly
+                        if isinstance(field_value, str) and field_value.startswith('urn:'):
+                            return field_value
                 
                 # If target_urn_field is not 'urn', try to find the entity by that field
                 if target_urn_field != rule_config.get('urn_field_name', 'urn'):
@@ -704,6 +729,19 @@ class Neo4jWriterGenerator:
             def _resolve_source_urn(self, field_value: Any, source_entity_type: str, source_urn_field: str, aspect_data: Dict[str, Any], field_mapping: Dict[str, Any], entity_urn: str = None) -> str:
                 """Resolve source URN based on field mapping"""
                 rule_config = self.registry.get('relationship_rule_config', {})
+                
+                # Check if we should use direct URN construction
+                if field_mapping.get('use_direct_urns', False):
+                    if source_entity_type == 'Column':
+                        # For columns, construct URN directly using sourceDataset and field_value
+                        source_dataset = aspect_data.get('sourceDataset')
+                        if source_dataset and field_value:
+                            # Direct URN construction without sanitization
+                            return f"urn:li:column:({source_dataset},{field_value})"
+                    elif source_entity_type == 'Dataset':
+                        # For datasets, if field_value is already a complete URN, return it directly
+                        if isinstance(field_value, str) and field_value.startswith('urn:'):
+                            return field_value
                 
                 entity_def = self.registry.get('entities', {}).get(source_entity_type)
                 if entity_def:

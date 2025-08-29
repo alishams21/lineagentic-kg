@@ -1,16 +1,24 @@
-# Core Registry Configuration
-# This file contains the main registry settings and metadata
+# Core configuration for the data catalog system
+core_config:
+  # Registry configuration
+  registry:
+    config_files:
+      - "core.yaml"
+      - "entities.yaml"
+      - "aspects.yaml"
+      - "relationships.yaml"
+      - "urn_patterns.yaml"
+      - "utilities.yaml"
+  
+  # Utility functions configuration
+  utility_functions:
+    enabled_utility_functions: ["data_platform_urn", "email_to_username", "mask_secret", "utc_now_ms"]
 
 # Registry metadata
 metadata:
   version: "1.0"
   description: "Enhanced registry for dynamic Neo4jMetadataWriter generation"
   urn_prefix: "urn:li"
-
-# Registry configuration
-registry_config:
-  required_sections: ["entities", "urn_patterns", "aspect_types", "aspects", "utility_functions"]
-  enabled_utility_functions: ["sanitize_id", "email_to_username", "mask_secret", "utc_now_ms"]
 
 # Section configuration - all section names are configurable
 section_config:
