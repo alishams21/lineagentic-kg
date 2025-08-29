@@ -33,10 +33,7 @@ def main():
     print(f"\nTo use the generated CLI:")
     print(f"cd {output_dir}")
     print(f"pip install -r requirements.txt")
-    print(f"python cli.py --help")
-    print(f"\nOr install as package:")
-    print(f"pip install -e .")
-    print(f"registry-cli --help")
+    print(f"python lineagentic_cli.py --help")
 
 
 if __name__ == "__main__":

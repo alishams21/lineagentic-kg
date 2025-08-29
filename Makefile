@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help start-databases stop-databases stop-databases-and-clean-data clean-all-stack generate-mermaid-diagram run-api
+.PHONY: help start-databases stop-databases stop-databases-and-clean-data clean-all-stack generate-mermaid-diagram run-api run-cli
 
 help:
 	@echo "🚀 Lineagentic Project"
@@ -17,6 +17,9 @@ help:
 	@echo "  - lock-deps: Lock dependencies with uv"
 	@echo "  - sync-deps: Sync dependencies with uv"
 	@echo "  - run-api: Generate and run the API server"
+	@echo "  - run-cli: Generate and run the CLI"
+	@echo "  - cli: Run CLI command (e.g., 'make cli ARGS=\"health\"')"
+
 	@echo ""
 	@echo "📦 PyPI Publishing Commands:"
 	@echo "  - build-package: Build the PyPI package"
@@ -94,14 +97,15 @@ clean-all:
 	@rm -rf agents_log 2>/dev/null || echo "No agents_log folder found"
 	@rm -rf lineage_extraction_dumps 2>/dev/null || echo "No lineage_extraction_dumps folder found"
 	@rm -rf .venv 2>/dev/null || echo "No .venv folder found"
-	@rm -rf lineagentic-catalog.egg-info 2>/dev/null || echo "No lineagentic-catalog.egg-info folder found"
+	@rm -rf lineagentic-kg.egg-info 2>/dev/null || echo "No lineagentic-kg.egg-info folder found"
 	@rm -rf .pytest_cache 2>/dev/null || echo "No .pytest_cache folder found"
 	@rm -rf .mypy_cache 2>/dev/null || echo "No .mypy_cache folder found"
 	@rm -rf generated_api 2>/dev/null || echo "No generated_api folder found"
 	@rm -rf generated_cli 2>/dev/null || echo "No generated_cli folder found"
 	@rm -rf logs 2>/dev/null || echo "No logs folder found"
+	@rm -rf generated_cli 2>/dev/null || echo "No generated_cli folder found"
 	@rm -rf dist 2>/dev/null || echo "No dist folder found"
-	@rm -rf lineagentic_catalog.egg-info 2>/dev/null || echo "No lineagentic_catalog.egg-info folder found"
+	@rm -rf lineagentic_kg.egg-info 2>/dev/null || echo "No lineagentic_kg.egg-info folder found"
 	@rm -rf .pytest_cache 2>/dev/null || echo "No .pytest_cache folder found"
 	@$(MAKE) clean-pycache
 	@echo "✅ Cleanup completed!"
@@ -164,6 +168,40 @@ run-api:
 	@echo "✅ API server started!"
 
 # =============================================================================
+# CLI Generation and Execution #################################################
+# =============================================================================
+
+# Generate and run the CLI
+run-cli:
+	@echo "🚀 Generating and running CLI..."
+	@echo "1️⃣ Syncing dependencies with uv..."
+	@uv sync
+	@echo "✅ Dependencies synced!"
+	@echo ""
+	@echo "2️⃣ Activating virtual environment..."
+	@source .venv/bin/activate || echo "⚠️  Virtual environment activation failed, continuing..."
+	@echo "✅ Environment activated!"
+	@echo ""
+	@echo "3️⃣ Generating CLI from registry..."
+	@generate-cli
+	@echo "✅ CLI generated!"
+	@echo ""
+	@echo "4️⃣ Installing CLI dependencies..."
+	@cd generated_cli && pip install -r requirements.txt
+	@echo "✅ CLI dependencies installed!"
+	@echo ""
+	@echo "5️⃣ Starting CLI..."
+	@cd generated_cli && python lineagentic_cli.py --help
+	@echo "✅ CLI is ready! Use 'make cli <command>' to run commands"
+
+# Run CLI command with proper environment
+cli:
+	@echo "🚀 Running CLI command..."
+	@cd generated_cli && python lineagentic_cli.py $(ARGS)
+
+
+
+# =============================================================================
 # Generate Mermaid Diagram #####################################################
 # =============================================================================
 
@@ -194,7 +232,7 @@ build-package:
 	@echo "Package built successfully!"
 	@echo "Package files created in dist/ directory"
 	@echo "Next steps:"
-	@echo "  - Test locally: pip install dist/lineagentic_catalog-0.1.0.tar.gz"
+	@echo "  - Test locally: pip install dist/lineagentic_kg-0.1.0.tar.gz"
 	@echo "  - Publish to TestPyPI: make publish-testpypi"
 	@echo "  - Publish to PyPI: make publish-pypi"
 
@@ -210,8 +248,8 @@ publish-testpypi:
 	@echo " Uploading to TestPyPI..."
 	@python -m twine upload --repository testpypi dist/*
 	@echo "Package published to TestPyPI!"
-	@echo "View at: https://test.pypi.org/project/lineagentic-catalog/"
-	@echo "Test install: pip install --index-url https://test.pypi.org/simple/ lineagentic-catalog"
+	@echo "View at: https://test.pypi.org/project/lineagentic-kg/"
+	@echo "Test install: pip install --index-url https://test.pypi.org/simple/ lineagentic-kg"
 
 # Publish to PyPI (production)
 publish-pypi:
@@ -228,5 +266,5 @@ publish-pypi:
 	@echo " Uploading to PyPI..."
 	@python -m twine upload dist/*
 	@echo "Package published to PyPI!"
-	@echo "View at: https://pypi.org/project/lineagentic-catalog/"
-	@echo "Install with: pip install lineagentic-catalog"
+	@echo "View at: https://pypi.org/project/lineagentic-kg/"
+	@echo "Install with: pip install lineagentic-kg"

@@ -84,8 +84,7 @@ class CLIGenerator:
             self.logger.debug("Generating README")
             self._generate_readme()
             
-            self.logger.debug("Generating setup.py")
-            self._generate_setup_py()
+
             
             self.logger.info("Generated CLI files successfully", output_dir=str(self.output_dir))
             log_function_result(self.logger, "generate_all", output_dir=str(self.output_dir))
@@ -108,7 +107,7 @@ from typing import Optional
 # Add parent directory to path to import registry modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from registry.factory import RegistryFactory
+from lineagentic_kg.registry.factory import RegistryFactory
 
 
 class FactoryWrapper:
@@ -1100,10 +1099,10 @@ if __name__ == '__main__':
 '''
         
         # Write main CLI file
-        with open(self.output_dir / "cli.py", "w") as f:
+        with open(self.output_dir / "lineagentic_cli.py", "w") as f:
             f.write(cli_content)
         
-        print(f"✅ Generated cli.py")
+        print(f"✅ Generated lineagentic_cli.py")
     
     def _generate_requirements(self):
         """Generate requirements.txt"""
@@ -1120,54 +1119,7 @@ tabulate==0.9.0
         
         print(f"✅ Generated requirements.txt")
     
-    def _generate_setup_py(self):
-        """Generate setup.py for CLI installation"""
-        setup_content = '''#!/usr/bin/env python3
-"""
-Setup script for CLI installation
-"""
 
-from setuptools import setup, find_packages
-
-with open("README.md", "r", encoding="utf-8") as fh:
-    long_description = fh.read()
-
-with open("requirements.txt", "r", encoding="utf-8") as fh:
-    requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
-
-setup(
-    name="registryfactory-cli",
-    version="1.0.0",
-    author="RegistryFactory CLI Generator",
-    description="Command line interface for RegistryFactory metadata operations",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    packages=find_packages(),
-    classifiers=[
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-    ],
-    python_requires=">=3.8",
-    install_requires=requirements,
-    entry_points={
-        "console_scripts": [
-            "registry-cli=cli:cli",
-        ],
-    },
-)
-'''
-        
-        with open(self.output_dir / "setup.py", "w") as f:
-            f.write(setup_content)
-        
-        print(f"✅ Generated setup.py")
     
     def _generate_readme(self):
         """Generate README.md"""
@@ -1177,16 +1129,9 @@ This is an auto-generated command-line interface based on the RegistryFactory me
 
 ## Installation
 
-### Option 1: Install as package
-```bash
-pip install -e .
-registry-cli --help
-```
-
-### Option 2: Run directly
 ```bash
 pip install -r requirements.txt
-python cli.py --help
+python lineagentic_cli.py --help
 ```
 
 ## Configuration
@@ -1203,7 +1148,7 @@ export NEO4J_PASSWORD="password"
 
 ### Health Check
 ```bash
-registry-cli health
+lineagentic-kg health
 ```
 
 ### Entity Commands
@@ -1216,13 +1161,13 @@ registry-cli health
 #### {entity_name.title()}
 ```bash
 # Get {entity_name} by URN
-registry-cli get-{entity_name.lower()} <urn> [--output json|table|yaml]
+lineagentic-kg get-{entity_name.lower()} <urn> [--output json|table|yaml]
 
 # Upsert {entity_name}
-registry-cli upsert-{entity_name.lower()} [--property value] [--additional-properties '{{"key": "value"}}']
+lineagentic-kg upsert-{entity_name.lower()} [--property value] [--additional-properties '{{"key": "value"}}']
 
 # Delete {entity_name} by URN
-registry-cli delete-{entity_name.lower()} <urn>
+lineagentic-kg delete-{entity_name.lower()} <urn>
 ```
 '''
         
@@ -1241,13 +1186,13 @@ registry-cli delete-{entity_name.lower()} <urn>
 #### {aspect_name.title()} (Timeseries)
 ```bash
 # Get {aspect_name} aspect
-registry-cli get-{aspect_name.lower()}-aspect <entity_label> <entity_urn> [--limit 100] [--output json|table|yaml]
+lineagentic-kg get-{aspect_name.lower()}-aspect <entity_label> <entity_urn> [--limit 100] [--output json|table|yaml]
 
 # Upsert {aspect_name} aspect
-registry-cli upsert-{aspect_name.lower()}-aspect [--entity-label label] [--entity-urn urn] [--property value] [--timestamp-ms 1234567890]
+lineagentic-kg upsert-{aspect_name.lower()}-aspect [--entity-label label] [--entity-urn urn] [--property value] [--timestamp-ms 1234567890]
 
 # Delete {aspect_name} aspect
-registry-cli delete-{aspect_name.lower()}-aspect <entity_label> <entity_urn>
+lineagentic-kg delete-{aspect_name.lower()}-aspect <entity_label> <entity_urn>
 ```
 '''
             else:
@@ -1255,13 +1200,13 @@ registry-cli delete-{aspect_name.lower()}-aspect <entity_label> <entity_urn>
 #### {aspect_name.title()} (Versioned)
 ```bash
 # Get {aspect_name} aspect
-registry-cli get-{aspect_name.lower()}-aspect <entity_label> <entity_urn> [--output json|table|yaml]
+lineagentic-kg get-{aspect_name.lower()}-aspect <entity_label> <entity_urn> [--output json|table|yaml]
 
 # Upsert {aspect_name} aspect
-registry-cli upsert-{aspect_name.lower()}-aspect [--entity-label label] [--entity-urn urn] [--property value] [--version 1]
+lineagentic-kg upsert-{aspect_name.lower()}-aspect [--entity-label label] [--entity-urn urn] [--property value] [--version 1]
 
 # Delete {aspect_name} aspect
-registry-cli delete-{aspect_name.lower()}-aspect <entity_label> <entity_urn>
+lineagentic-kg delete-{aspect_name.lower()}-aspect <entity_label> <entity_urn>
 ```
 '''
         
@@ -1269,35 +1214,35 @@ registry-cli delete-{aspect_name.lower()}-aspect <entity_label> <entity_urn>
 ### Utility Commands
 ```bash
 # List available utility functions
-registry-cli list-utilities
+lineagentic-kg list-utilities
 
 # Execute utility function
-registry-cli utility <function_name> [--parameters '{"param": "value"}']
+lineagentic-kg utility <function_name> [--parameters '{"param": "value"}']
 
 # Health check
-registry-cli health
+lineagentic-kg health
 ```
 
 ## Examples
 
 ### Create a Dataset
 ```bash
-registry-cli upsert-dataset --name "my_dataset" --platform "mysql" --source "production"
+lineagentic-kg upsert-dataset --name "my_dataset" --platform "mysql" --source "production"
 ```
 
 ### Add Schema Metadata
 ```bash
-registry-cli upsert-schema-metadata-aspect --entity-label "Dataset" --entity-urn "urn:li:dataset:(urn:li:dataPlatform:mysql,my_dataset,PROD)" --fields '[{"fieldPath": "id", "type": "INTEGER"}]'
+lineagentic-kg upsert-schema-metadata-aspect --entity-label "Dataset" --entity-urn "urn:li:dataset:(urn:li:dataPlatform:mysql,my_dataset,PROD)" --fields '[{"fieldPath": "id", "type": "INTEGER"}]'
 ```
 
 ### Get Entity Information
 ```bash
-registry-cli get-dataset "urn:li:dataset:(urn:li:dataPlatform:mysql,my_dataset,PROD)" --output table
+lineagentic-kg get-dataset "urn:li:dataset:(urn:li:dataPlatform:mysql,my_dataset,PROD)" --output table
 ```
 
 ## Generated Files
 
-- `cli.py` - Main CLI application
+- `lineagentic_cli.py` - Main CLI application
 - `entity_commands.py` - Entity operation commands
 - `aspect_commands.py` - Aspect operation commands
 - `utility_commands.py` - Utility function commands

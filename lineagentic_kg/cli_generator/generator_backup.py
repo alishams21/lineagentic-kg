@@ -12,7 +12,7 @@ from pathlib import Path
 # Add parent directory to path to import registry modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from registry.factory import RegistryFactory
+from lineagentic_kg.registry.factory import RegistryFactory
 
 
 class CLIGenerator:
@@ -74,7 +74,7 @@ from typing import Optional
 # Add parent directory to path to import registry modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from registry.factory import RegistryFactory
+from lineagentic_kg.registry.factory import RegistryFactory
 
 
 class FactoryWrapper:
@@ -1074,7 +1074,7 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "registry-cli=cli:cli",
+            "lineagentic-kg=cli:cli",
         ],
     },
 )
@@ -1096,7 +1096,7 @@ This is an auto-generated command-line interface based on the RegistryFactory me
 ### Option 1: Install as package
 ```bash
 pip install -e .
-registry-cli --help
+lineagentic-kg --help
 ```
 
 ### Option 2: Run directly
@@ -1119,7 +1119,7 @@ export NEO4J_PASSWORD="password"
 
 ### Health Check
 ```bash
-registry-cli health
+lineagentic-kg health
 ```
 
 ### Entity Commands
@@ -1132,13 +1132,13 @@ registry-cli health
 #### {entity_name.title()}
 ```bash
 # Get {entity_name} by URN
-registry-cli get-{entity_name.lower()} <urn> [--output json|table|yaml]
+lineagentic-kg get-{entity_name.lower()} <urn> [--output json|table|yaml]
 
 # Upsert {entity_name}
-registry-cli upsert-{entity_name.lower()} [--property value] [--additional-properties '{{"key": "value"}}']
+lineagentic-kg upsert-{entity_name.lower()} [--property value] [--additional-properties '{{"key": "value"}}']
 
 # Delete {entity_name} by URN
-registry-cli delete-{entity_name.lower()} <urn>
+lineagentic-kg delete-{entity_name.lower()} <urn>
 ```
 '''
         
@@ -1157,13 +1157,13 @@ registry-cli delete-{entity_name.lower()} <urn>
 #### {aspect_name.title()} (Timeseries)
 ```bash
 # Get {aspect_name} aspect
-registry-cli get-{aspect_name.lower()}-aspect <entity_label> <entity_urn> [--limit 100] [--output json|table|yaml]
+lineagentic-kg get-{aspect_name.lower()}-aspect <entity_label> <entity_urn> [--limit 100] [--output json|table|yaml]
 
 # Upsert {aspect_name} aspect
-registry-cli upsert-{aspect_name.lower()}-aspect [--entity-label label] [--entity-urn urn] [--property value] [--timestamp-ms 1234567890]
+lineagentic-kg upsert-{aspect_name.lower()}-aspect [--entity-label label] [--entity-urn urn] [--property value] [--timestamp-ms 1234567890]
 
 # Delete {aspect_name} aspect
-registry-cli delete-{aspect_name.lower()}-aspect <entity_label> <entity_urn>
+lineagentic-kg delete-{aspect_name.lower()}-aspect <entity_label> <entity_urn>
 ```
 '''
             else:
@@ -1171,13 +1171,13 @@ registry-cli delete-{aspect_name.lower()}-aspect <entity_label> <entity_urn>
 #### {aspect_name.title()} (Versioned)
 ```bash
 # Get {aspect_name} aspect
-registry-cli get-{aspect_name.lower()}-aspect <entity_label> <entity_urn> [--output json|table|yaml]
+lineagentic-kg get-{aspect_name.lower()}-aspect <entity_label> <entity_urn> [--output json|table|yaml]
 
 # Upsert {aspect_name} aspect
-registry-cli upsert-{aspect_name.lower()}-aspect [--entity-label label] [--entity-urn urn] [--property value] [--version 1]
+lineagentic-kg upsert-{aspect_name.lower()}-aspect [--entity-label label] [--entity-urn urn] [--property value] [--version 1]
 
 # Delete {aspect_name} aspect
-registry-cli delete-{aspect_name.lower()}-aspect <entity_label> <entity_urn>
+lineagentic-kg delete-{aspect_name.lower()}-aspect <entity_label> <entity_urn>
 ```
 '''
         
@@ -1185,30 +1185,30 @@ registry-cli delete-{aspect_name.lower()}-aspect <entity_label> <entity_urn>
 ### Utility Commands
 ```bash
 # List available utility functions
-registry-cli list-utilities
+lineagentic-kg list-utilities
 
 # Execute utility function
-registry-cli utility <function_name> [--parameters '{"param": "value"}']
+lineagentic-kg utility <function_name> [--parameters '{"param": "value"}']
 
 # Health check
-registry-cli health
+lineagentic-kg health
 ```
 
 ## Examples
 
 ### Create a Dataset
 ```bash
-registry-cli upsert-dataset --name "my_dataset" --platform "mysql" --source "production"
+lineagentic-kg upsert-dataset --name "my_dataset" --platform "mysql" --source "production"
 ```
 
 ### Add Schema Metadata
 ```bash
-registry-cli upsert-schema-metadata-aspect --entity-label "Dataset" --entity-urn "urn:li:dataset:(urn:li:dataPlatform:mysql,my_dataset,PROD)" --fields '[{"fieldPath": "id", "type": "INTEGER"}]'
+lineagentic-kg upsert-schema-metadata-aspect --entity-label "Dataset" --entity-urn "urn:li:dataset:(urn:li:dataPlatform:mysql,my_dataset,PROD)" --fields '[{"fieldPath": "id", "type": "INTEGER"}]'
 ```
 
 ### Get Entity Information
 ```bash
-registry-cli get-dataset "urn:li:dataset:(urn:li:dataPlatform:mysql,my_dataset,PROD)" --output table
+lineagentic-kg get-dataset "urn:li:dataset:(urn:li:dataPlatform:mysql,my_dataset,PROD)" --output table
 ```
 
 ## Generated Files

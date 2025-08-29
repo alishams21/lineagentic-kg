@@ -3,9 +3,9 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lineagentic-catalog"
-version = "0.7.0"
-description = "Graph-native metadata platform that turns simple YAML definitions into a fully operational, customizable, and governed data model."
+name = "lineagentic-kg"
+version = "1.1.0"
+description = "Turn YAML into a Knowledge Graph in minutes"
 readme = "README.md"
 license = "Apache-2.0"
 authors = [
@@ -50,21 +50,21 @@ dev = [
 ]
 
 [project.scripts]
-generate-api = "lineagentic_catalog.scripts.generate_api:main"
-generate-cli = "lineagentic_catalog.scripts.generate_cli:main"
+generate-api = "lineagentic_kg.scripts.generate_api:main"
+generate-cli = "lineagentic_kg.scripts.generate_cli:main"
 
 [project.urls]
 Homepage = "https://lineagentic.com"
-Repository = "https://github.com/lineagentic/lineagentic-catalog"
-Documentation = "https://github.com/lineagentic/lineagentic-catalog#readme"
-Issues = "https://github.com/lineagentic/lineagentic-catalog/issues"
+Repository = "https://github.com/lineagentic/lineagentic-kg"
+Documentation = "https://github.com/lineagentic/lineagentic-kg#readme"
+Issues = "https://github.com/lineagentic/lineagentic-kg/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["lineagentic_catalog*"]
+include = ["lineagentic_kg*"]
 
 [tool.setuptools.package-data]
-"lineagentic_catalog" = ["config/*.yaml"]
+"lineagentic_kg" = ["config/*.yaml"]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["*.pyc", "*.pyo", "*.pyd", "__pycache__", "*.so"]

@@ -947,8 +947,8 @@ python main.py
             
             if not source_config_dir:
                 # If we can't find the config directory, try to copy from the package
-                import lineagentic_catalog
-                package_dir = Path(lineagentic_catalog.__file__).parent
+                import lineagentic_kg
+                package_dir = Path(lineagentic_kg.__file__).parent
                 source_config_dir = package_dir / "config"
             
             if not source_config_dir.exists():

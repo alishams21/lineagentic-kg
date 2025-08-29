@@ -6,7 +6,7 @@
 
 Lineagentic-KG is a knowledge graph builder that converts simple YAML definitions into a fully operational and customizable knowledge graph. While one key use case is building a data catalog, the framework is generic and extensible—making it easy to define entities, aspects, and relationships for any domain.
 
-With automatic REST API and CLI tooling generation, Lineagentic-KG delivers a “batteries included” experience for quickly turning YAML into production-ready graph-based systems.
+With automatic REST API and CLI tooling generation, Lineagentic-KG delivers a “batteries included” experience for quickly turning YAML into production-ready knowledge graph.
 
 ##Features
 
@@ -169,16 +169,16 @@ After generating the CLI, you can use command-line tools to manage your metadata
 
 ```bash
 # 1. Create a dataset
-registry-cli upsert-dataset --platform "snowflake" --name "customer_data" --env "PROD"
+lineagentic-kg upsert-dataset --platform "snowflake" --name "customer_data" --env "PROD"
 
 # 2. Get dataset information
-registry-cli get-dataset "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_data,PROD)" --output table
+lineagentic-kg get-dataset "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_data,PROD)" --output table
 
 # 3. Add ownership aspect to the dataset
-registry-cli upsert-ownership-aspect --entity-label "Dataset" --entity-urn "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_data,PROD)" --owners '[{"owner": "urn:li:corpuser:john.doe", "type": "DATAOWNER"}]'
+lineagentic-kg upsert-ownership-aspect --entity-label "Dataset" --entity-urn "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_data,PROD)" --owners '[{"owner": "urn:li:corpuser:john.doe", "type": "DATAOWNER"}]'
 
 # 4. Health check
-registry-cli health
+lineagentic-kg health
 ```
 
 
