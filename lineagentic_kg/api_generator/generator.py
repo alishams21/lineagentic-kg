@@ -680,11 +680,11 @@ from typing import Optional
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 try:
-    from lineagentic_catalog.registry.factory import RegistryFactory
+    from lineagentic_kg.registry.factory import RegistryFactory
 except ImportError:
     # Fallback for when running as standalone
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-    from lineagentic_catalog.registry.factory import RegistryFactory
+    from lineagentic_kg.registry.factory import RegistryFactory
 
 
 class FactoryWrapper:
@@ -936,7 +936,7 @@ python main.py
             # Try different possible locations for the config directory
             possible_paths = [
                 registry_path.parent,  # Same directory as registry file
-                Path("lineagentic_catalog/config"),  # Relative to current working directory
+                Path("lineagentic_kg/config"),  # Relative to current working directory
                 Path(__file__).parent.parent / "config",  # Relative to this file
             ]
             

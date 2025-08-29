@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help start-databases stop-databases stop-databases-and-clean-data clean-all-stack generate-mermaid-diagram run-api run-cli
+.PHONY: help start-databases stop-databases stop-databases-and-clean-data clean-all-stack generate-mermaid-diagram generate-and-run-api generate-cli run-cli
 
 help:
 	@echo "🚀 Lineagentic Project"
@@ -16,9 +16,9 @@ help:
 	@echo "  - install-dev: Install development dependencies with uv"
 	@echo "  - lock-deps: Lock dependencies with uv"
 	@echo "  - sync-deps: Sync dependencies with uv"
-	@echo "  - run-api: Generate and run the API server"
-	@echo "  - run-cli: Generate and run the CLI"
-	@echo "  - cli: Run CLI command (e.g., 'make cli ARGS=\"health\"')"
+	@echo "  - generate-and-run-api: Generate and run the API server"
+	@echo "  - generate-cli: Generate the CLI"
+	@echo "  - run-cli: Run CLI command (e.g., 'make run-cli ARGS=\"health\"')"
 
 	@echo ""
 	@echo "📦 PyPI Publishing Commands:"
@@ -145,7 +145,7 @@ sync-deps:
 # =============================================================================
 
 # Generate and run the API server
-run-api:
+generate-and-run-api:
 	@echo "🚀 Generating and running API server..."
 	@echo "1️⃣ Syncing dependencies with uv..."
 	@uv sync
@@ -172,7 +172,7 @@ run-api:
 # =============================================================================
 
 # Generate and run the CLI
-run-cli:
+generate-cli:
 	@echo "🚀 Generating and running CLI..."
 	@echo "1️⃣ Syncing dependencies with uv..."
 	@uv sync
@@ -195,7 +195,7 @@ run-cli:
 	@echo "✅ CLI is ready! Use 'make cli <command>' to run commands"
 
 # Run CLI command with proper environment
-cli:
+run-cli:
 	@echo "🚀 Running CLI command..."
 	@cd generated_cli && python lineagentic_cli.py $(ARGS)
 

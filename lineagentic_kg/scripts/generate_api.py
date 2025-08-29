@@ -17,7 +17,7 @@ from lineagentic_kg.api_generator.generator import APIGenerator
 def main():
     """Generate API files"""
     # Configuration
-    registry_path = "lineagentic_catalog/config/main_registry.yaml"
+    registry_path = "lineagentic_kg/config/main_registry.yaml"
     output_dir = "generated_api"
     
     print("🚀 Generating FastAPI from RegistryFactory...")

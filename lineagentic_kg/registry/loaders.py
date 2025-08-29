@@ -36,7 +36,7 @@ class RegistryLoader:
         try:
             # Try to load from the package's config directory using importlib.resources
             config_file_name = Path(file_path).name
-            with importlib.resources.files('lineagentic_catalog').joinpath('config', config_file_name).open('r') as f:
+            with importlib.resources.files('lineagentic_kg').joinpath('config', config_file_name).open('r') as f:
                 return yaml.safe_load(f)
         except Exception:
             pass

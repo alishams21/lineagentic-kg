@@ -17,7 +17,7 @@ from lineagentic_kg.cli_generator.generator import CLIGenerator
 def main():
     """Generate CLI files"""
     # Configuration
-    registry_path = "lineagentic_catalog/config/main_registry.yaml"
+    registry_path = "lineagentic_kg/config/main_registry.yaml"
     output_dir = "generated_cli"
     
     print("🚀 Generating CLI from RegistryFactory...")
