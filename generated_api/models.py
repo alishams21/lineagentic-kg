@@ -493,6 +493,42 @@ class DatasettransformationAspectResponse(BaseModel):
     payload: Dict[str, Any] = Field(..., description="Aspect payload")
     version: Optional[int] = Field(None, description="Version")
 
+class DataqualityAspectUpsertRequest(BaseModel):
+    """Request model for upserting dataQuality aspect"""
+    entity_label: Optional[str] = Field(None, description="Entity label (optional if entity_creation is configured)")
+    entity_urn: Optional[str] = Field(None, description="Entity URN (optional if entity_creation is configured)")
+
+    qualityScore: Any = Field(..., description="qualityScore")
+    qualityMetrics: Optional[Any] = Field(None, description="qualityMetrics")
+    lastValidated: Any = Field(..., description="lastValidated")
+    validationRules: Optional[Any] = Field(None, description="validationRules")
+    dataQualityIssues: Optional[Any] = Field(None, description="dataQualityIssues")
+    qualityChecks: Optional[Any] = Field(None, description="qualityChecks")
+    version: Optional[int] = Field(None, description="Version (for versioned aspects)")
+
+    entity_params: Optional[Dict[str, Any]] = Field(None, description="Entity creation parameters")
+
+
+class DataqualityAspectGetRequest(BaseModel):
+    """Request model for getting dataQuality aspect"""
+    entity_label: str = Field(..., description="Entity label")
+    entity_urn: str = Field(..., description="Entity URN")
+
+
+class DataqualityAspectDeleteRequest(BaseModel):
+    """Request model for deleting dataQuality aspect"""
+    entity_label: str = Field(..., description="Entity label")
+    entity_urn: str = Field(..., description="Entity URN")
+
+
+class DataqualityAspectResponse(BaseModel):
+    """Response model for dataQuality aspect"""
+    entity_label: str = Field(..., description="Entity label")
+    entity_urn: str = Field(..., description="Entity URN")
+    aspect_name: str = Field(..., description="Aspect name")
+    payload: Dict[str, Any] = Field(..., description="Aspect payload")
+    version: Optional[int] = Field(None, description="Version")
+
 
 # Utility models
 class UtilityRequest(BaseModel):

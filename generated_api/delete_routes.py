@@ -176,6 +176,24 @@ async def delete_corpUserInfo_aspect(entity_label: str, entity_urn: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.delete("/aspects/dataQuality/{entity_label}/{entity_urn}")
+async def delete_dataQuality_aspect(entity_label: str, entity_urn: str):
+    """Delete dataQuality aspect for entity"""
+    try:
+        factory = factory_wrapper.get_factory_instance()
+        writer = factory_wrapper.get_writer_instance()
+        
+        method_name = "delete_dataquality_aspect"
+        if not hasattr(writer, method_name):
+            raise HTTPException(status_code=400, detail=f"Aspect 'dataQuality' not found")
+        
+        method = getattr(writer, method_name)
+        method(entity_label, entity_urn)
+        
+        return {"message": f"dataQuality aspect deleted successfully for entity '{entity_urn}'"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.delete("/aspects/datasetProfile/{entity_label}/{entity_urn}")
 async def delete_datasetProfile_aspect(entity_label: str, entity_urn: str):
     """Delete datasetProfile aspect for entity"""

@@ -157,4 +157,20 @@ aspects:
       urn_generator: "dataset"
       required_params: ["platform", "name"]
       optional_params: ["env"]
+
+  dataQuality:
+    type: versioned
+    properties:
+      - qualityScore
+      - qualityMetrics
+      - lastValidated
+      - validationRules
+      - dataQualityIssues
+      - qualityChecks
+    required: ["qualityScore", "lastValidated"]
+    entity_creation:
+      entity_type: "Dataset"
+      urn_generator: "dataset"
+      required_params: ["platform", "name"]
+      optional_params: ["env"]
  

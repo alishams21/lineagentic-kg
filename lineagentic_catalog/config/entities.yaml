@@ -18,6 +18,7 @@ entities:
       globalTags: versioned
       datasetProfile: timeseries
       datasetTransformation: versioned
+      dataQuality: versioned
 
   CorpUser:
     key: corpUserKey

@@ -419,6 +419,61 @@ async def upsert_corpUserInfo_aspect(request: models.CorpuserinfoAspectUpsertReq
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/aspects/dataQuality", response_model=models.DataqualityAspectResponse)
+async def upsert_dataQuality_aspect(request: models.DataqualityAspectUpsertRequest):
+    """Upsert dataQuality aspect"""
+    try:
+        factory = factory_wrapper.get_factory_instance()
+        writer = factory_wrapper.get_writer_instance()
+        
+        method_name = "upsert_dataquality_aspect"
+        if not hasattr(writer, method_name):
+            raise HTTPException(status_code=400, detail=f"Aspect 'dataQuality' not found")
+        
+        method = getattr(writer, method_name)
+        
+        # Prepare parameters - extract all fields except entity_label, entity_urn, entity_params, version, timestamp_ms
+        params = {
+            "entity_label": request.entity_label,
+            "entity_urn": request.entity_urn
+        }
+        
+        # Add all aspect-specific fields to payload
+        aspect_config = factory.registry.get('aspects', {}).get('dataQuality', {})
+        aspect_properties = aspect_config.get('properties', [])
+        
+        payload = {}
+        for prop in aspect_properties:
+            if hasattr(request, prop) and getattr(request, prop) is not None:
+                payload[prop] = getattr(request, prop)
+        
+        params["payload"] = payload
+        
+        # Add optional parameters - only for versioned aspects
+        aspect_config = factory.registry.get('aspects', {}).get('dataQuality', {})
+        aspect_type = aspect_config.get('type', 'versioned')
+        
+        if aspect_type == 'versioned' and hasattr(request, 'version') and request.version is not None:
+            params["version"] = request.version
+        
+        # Add entity creation parameters
+        entity_params = request.entity_params
+        if entity_params:
+            params.update(entity_params)
+        
+        # Call the generated method
+        result = method(**params)
+        
+        return models.DataqualityAspectResponse(
+            entity_label=request.entity_label or "unknown",
+            entity_urn=request.entity_urn or "unknown",
+            aspect_name="dataQuality",
+            payload=payload,
+            version=request.version if aspect_type == 'versioned' and hasattr(request, 'version') else None
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/aspects/datasetProfile", response_model=models.DatasetprofileAspectResponse)
 async def upsert_datasetProfile_aspect(request: models.DatasetprofileAspectUpsertRequest):
     """Upsert datasetProfile aspect"""

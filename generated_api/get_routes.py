@@ -290,6 +290,37 @@ async def get_corpUserInfo_aspect(entity_label: str, entity_urn: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/aspects/dataQuality/{entity_label}/{entity_urn}", response_model=models.DataqualityAspectResponse)
+async def get_dataQuality_aspect(entity_label: str, entity_urn: str):
+    """Get dataQuality aspect for entity"""
+    try:
+        factory = factory_wrapper.get_factory_instance()
+        writer = factory_wrapper.get_writer_instance()
+        
+        method_name = "get_dataquality_aspect"
+        if not hasattr(writer, method_name):
+            # Debug: list available methods
+            available_methods = [m for m in dir(writer) if not m.startswith('_') and 'aspect' in m]
+            raise HTTPException(status_code=400, detail=f"Aspect 'dataQuality' not found. Available aspect methods: {available_methods}")
+        
+        method = getattr(writer, method_name)
+        result = method(entity_label, entity_urn)
+        
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"dataQuality aspect not found")
+        
+        return models.DataqualityAspectResponse(
+            entity_label=entity_label,
+            entity_urn=entity_urn,
+            aspect_name="dataQuality",
+            payload=result,
+            version=result.get('version') if isinstance(result, dict) else None
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/aspects/datasetProfile/{entity_label}/{entity_urn}", response_model=models.DatasetprofileAspectResponse)
 async def get_datasetProfile_aspect(entity_label: str, entity_urn: str, limit: int = 100):
     """Get datasetProfile aspect for entity"""

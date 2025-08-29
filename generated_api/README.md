@@ -53,6 +53,11 @@ This is an auto-generated FastAPI application based on the RegistryFactory metho
 - `POST /api/v1/aspects/corpUserInfo` - Upsert corpUserInfo aspect
 - `DELETE /api/v1/aspects/corpUserInfo/{entity_label}/{entity_urn}` - Delete corpUserInfo aspect
 
+#### Dataquality
+- `GET /api/v1/aspects/dataQuality/{entity_label}/{entity_urn}` - Get dataQuality aspect
+- `POST /api/v1/aspects/dataQuality` - Upsert dataQuality aspect
+- `DELETE /api/v1/aspects/dataQuality/{entity_label}/{entity_urn}` - Delete dataQuality aspect
+
 #### Datasetprofile
 - `GET /api/v1/aspects/datasetProfile/{entity_label}/{entity_urn}` - Get datasetProfile aspect
 - `POST /api/v1/aspects/datasetProfile` - Upsert datasetProfile aspect
