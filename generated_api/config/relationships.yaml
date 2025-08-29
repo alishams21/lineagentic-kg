@@ -49,6 +49,11 @@ aspect_relationships:
           target_urn_field: "urn"
           # Use direct URN construction instead of templates
           use_direct_urns: true
+          # Add transformation properties to the relationship
+          relationship_properties:
+            transformType: "transformType"
+            transformScript: "transformScript"
+            sourceDataset: "sourceDataset"
 
   datasetTransformation:
     description: "Creates DOWNSTREAM_OF relationships from datasetTransformation aspect data"

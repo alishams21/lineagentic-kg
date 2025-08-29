@@ -603,6 +603,14 @@ class Neo4jWriterGenerator:
                     # If it's a complete URN (starts with urn:), don't create placeholder
                     if not target_urn.startswith('urn:'):
                         self._ensure_entity_exists(target_entity_type, target_urn, field_value, target_urn_field)
+                    
+                    # Extract relationship properties from aspect data if specified
+                    relationship_props = {}
+                    if 'relationship_properties' in field_mapping:
+                        for prop_name, aspect_field in field_mapping['relationship_properties'].items():
+                            if aspect_field in aspect_data:
+                                relationship_props[prop_name] = aspect_data[aspect_field]
+                    
                     # Check if relationship already exists to prevent duplicates
                     with self._driver.session() as s:
                         result = s.run(
@@ -610,7 +618,7 @@ class Neo4jWriterGenerator:
                             source_urn=source_urn, target_urn=target_urn
                         )
                         if not result.single():
-                            self._create_relationship_generic(source_entity_type, source_urn, relationship_type, target_entity_type, target_urn, {})
+                            self._create_relationship_generic(source_entity_type, source_urn, relationship_type, target_entity_type, target_urn, relationship_props)
                         else:
                             print(f"   ℹ️ Relationship {relationship_type} already exists between {source_urn} and {target_urn}")
                 else:
