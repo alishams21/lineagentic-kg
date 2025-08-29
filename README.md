@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/lineagentic/lineagentic-kg/main/images/lineagentickg.jpg" alt="Lineagentic Logo" width="880" height="300">
+  <img src="https://raw.githubusercontent.com/lineagentic/lineagentic-kg/main/images/lineagentickg.jpg" alt="Lineagentic Logo" width="880" height="500">
 </div>
 
 # Lineagentic-KG
