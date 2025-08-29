@@ -56,6 +56,8 @@ class Neo4jWriterGenerator:
                                 urn = urn_gen(**kwargs)
                                 props = {k: v for k, v in kwargs.items() if k in entity_def.get(properties_field, [])}
                                 self._upsert_entity_generic(entity_name, urn, props)
+                                # Discover relationships from entity creation
+                                self.discover_relationships_from_entity(entity_name, urn, props)
                                 return urn
                             return upsert_method
                         
@@ -107,6 +109,23 @@ class Neo4jWriterGenerator:
                             self._apply_aspect_relationship_rule(entity_urn, entity_type, combined_data, rule)
                 
                 setattr(self, 'discover_relationships_from_aspect', discover_relationships_from_aspect.__get__(self))
+                
+                def discover_relationships_from_entity(self, entity_type: str, entity_urn: str, entity_props: Dict[str, Any]):
+                    """Discover and create relationships from entity properties using YAML-driven rules"""
+                    print(f"🔍 Discovering relationships for entity {entity_type}:{entity_urn}")
+                    print(f"🔍 Entity properties: {entity_props}")
+                    # Look for entity creation relationships (not aspect-driven)
+                    for aspect_name, aspect_rules in self.registry.get(aspect_relationships_section, {}).items():
+                        print(f"🔍 Checking aspect: {aspect_name}, ends with 'Creation': {aspect_name.endswith('Creation')}")
+                        if aspect_name.endswith('Creation'):  # Only process entity creation relationships
+                            print(f"🔍 Processing entity creation rule: {aspect_name}")
+                            for rule in aspect_rules.get(rules_field, []):
+                                print(f"🔍 Rule entity_type: {rule.get(entity_type_field)}, target: {entity_type}")
+                                if rule.get(entity_type_field) == entity_type:
+                                    print(f"🔍 Applying entity relationship rule for {entity_type}")
+                                    self._apply_entity_relationship_rule(entity_urn, entity_type, entity_props, rule)
+                
+                setattr(self, 'discover_relationships_from_entity', discover_relationships_from_entity.__get__(self))
             
             def _generate_aspect_methods(self):
                 """Generate aspect-specific methods from registry"""
@@ -471,6 +490,84 @@ class Neo4jWriterGenerator:
                 for additional_rule in additional_relationships:
                     self._create_additional_relationship(entity_urn, entity_type, aspect_data, additional_rule)
             
+            def _apply_entity_relationship_rule(self, entity_urn: str, entity_type: str, entity_props: Dict[str, Any], rule: Dict[str, Any]):
+                """Apply a single entity relationship rule to create relationships"""
+                rule_config = self.registry.get('relationship_rule_config', {})
+                relationship_type_field = rule_config.get('relationship_type_field', 'relationship_type')
+                source_entity_field = rule_config.get('source_entity_field', 'source_entity')
+                target_entity_field = rule_config.get('target_entity_field', 'target_entity')
+                direction_field = rule_config.get('direction_field', 'direction')
+                field_mapping_field = rule_config.get('field_mapping_field', 'field_mapping')
+                
+                relationship_type = rule[relationship_type_field]
+                source_entity = rule[source_entity_field]
+                target_entity = rule[target_entity_field]
+                direction = rule.get(direction_field, rule_config.get('default_direction', 'outgoing'))
+                field_mapping = rule[field_mapping_field]
+                
+                source_field = field_mapping[rule_config.get('source_field_name', 'source_field')]
+                target_field = field_mapping.get(rule_config.get('target_field_name', 'target_field'), rule_config.get('default_target_field', 'urn'))
+                
+                # Get field value from entity properties
+                field_value = entity_props.get(source_field)
+                print(f"   🔍 Looking for field '{source_field}' in entity properties: {field_value}")
+                
+                if field_value:
+                    # Handle comma-separated values generically
+                    if isinstance(field_value, str) and ',' in field_value:
+                        values = [v.strip() for v in field_value.split(",") if v.strip()]
+                        for value in values:
+                            self._create_relationship_from_entity_field_mapping(
+                                entity_urn, entity_type, entity_props, rule, value
+                            )
+                    else:
+                        self._create_relationship_from_entity_field_mapping(
+                            entity_urn, entity_type, entity_props, rule, field_value
+                        )
+            
+            def _create_relationship_from_entity_field_mapping(self, entity_urn: str, entity_type: str, entity_props: Dict[str, Any], rule: Dict[str, Any], field_value: Any):
+                """Create a relationship based on entity field mapping rule"""
+                print(f"   🔗 Creating entity relationship with field_value: {field_value}")
+                rule_config = self.registry.get('relationship_rule_config', {})
+                relationship_type_field = rule_config.get('relationship_type_field', 'relationship_type')
+                source_entity_field = rule_config.get('source_entity_field', 'source_entity')
+                target_entity_field = rule_config.get('target_entity_field', 'target_entity')
+                direction_field = rule_config.get('direction_field', 'direction')
+                field_mapping_field = rule_config.get('field_mapping_field', 'field_mapping')
+                
+                relationship_type = rule[relationship_type_field]
+                source_entity = rule[source_entity_field]
+                target_entity = rule[target_entity_field]
+                direction = rule.get(direction_field, rule_config.get('default_direction', 'outgoing'))
+                field_mapping = rule[field_mapping_field]
+                
+                source_entity_type = field_mapping[rule_config.get('source_entity_type_name', 'source_entity_type')]
+                target_entity_type = field_mapping[rule_config.get('target_entity_type_name', 'target_entity_type')]
+                source_urn_field = field_mapping[rule_config.get('source_urn_field_name', 'source_urn_field')]
+                target_urn_field = field_mapping[rule_config.get('target_urn_field_name', 'target_urn_field')]
+                
+                if direction == rule_config.get('outgoing_direction', 'outgoing'):
+                    source_urn = entity_urn
+                    target_urn = self._resolve_target_urn(field_value, target_entity_type, target_urn_field, entity_props, field_mapping, entity_urn)
+                else:  # incoming
+                    source_urn = self._resolve_source_urn(field_value, source_entity_type, source_urn_field, entity_props, field_mapping, entity_urn)
+                    target_urn = entity_urn
+                
+                if source_urn and target_urn:
+                    self._ensure_entity_exists(target_entity_type, target_urn, field_value, target_urn_field)
+                    # Check if relationship already exists to prevent duplicates
+                    with self._driver.session() as s:
+                        result = s.run(
+                            f"MATCH (a:{source_entity_type} {{urn: $source_urn}})-[r:{relationship_type}]->(b:{target_entity_type} {{urn: $target_urn}}) RETURN r",
+                            source_urn=source_urn, target_urn=target_urn
+                        )
+                        if not result.single():
+                            self._create_relationship_generic(source_entity_type, source_urn, relationship_type, target_entity_type, target_urn, {})
+                        else:
+                            print(f"   ℹ️ Relationship {relationship_type} already exists between {source_urn} and {target_urn}")
+                else:
+                    print(f"   ⚠️ Skipped {relationship_type}: source_urn={source_urn}, target_urn={target_urn}")
+            
             def _create_relationship_from_field_mapping(self, entity_urn: str, entity_type: str, aspect_data: Dict[str, Any], rule: Dict[str, Any], field_value: Any):
                 """Create a relationship based on field mapping rule"""
                 print(f"   🔗 Creating relationship with field_value: {field_value}")
@@ -496,7 +593,7 @@ class Neo4jWriterGenerator:
                     source_urn = entity_urn
                     target_urn = self._resolve_target_urn(field_value, target_entity_type, target_urn_field, aspect_data, field_mapping, entity_urn)
                 else:  # incoming
-                    source_urn = self._resolve_source_urn(field_value, source_entity_type, source_urn_field, aspect_data, field_mapping)
+                    source_urn = self._resolve_source_urn(field_value, source_entity_type, source_urn_field, aspect_data, field_mapping, entity_urn)
                     target_urn = entity_urn
                 
                 if source_urn and target_urn:
@@ -604,7 +701,7 @@ class Neo4jWriterGenerator:
                 else:
                     return field_value
             
-            def _resolve_source_urn(self, field_value: Any, source_entity_type: str, source_urn_field: str, aspect_data: Dict[str, Any], field_mapping: Dict[str, Any]) -> str:
+            def _resolve_source_urn(self, field_value: Any, source_entity_type: str, source_urn_field: str, aspect_data: Dict[str, Any], field_mapping: Dict[str, Any], entity_urn: str = None) -> str:
                 """Resolve source URN based on field mapping"""
                 rule_config = self.registry.get('relationship_rule_config', {})
                 

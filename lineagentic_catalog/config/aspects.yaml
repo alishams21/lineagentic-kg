@@ -166,12 +166,8 @@ aspects:
       - namespace
       - description
       - version
+      - jobs
     required: ["name", "namespace"]
-    entity_creation:
-      entity_type: "DataFlow"
-      urn_generator: "dataFlow"
-      required_params: ["platform", "flow_id"]
-      optional_params: ["env"]
   
   dataJobInfo:
     type: versioned

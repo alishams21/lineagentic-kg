@@ -112,21 +112,21 @@ aspect_relationships:
           target_entity_type: "Dataset"
           target_urn_field: "urn"
 
-  dataFlowInfo:
-    description: "Creates HAS_JOB relationships from dataFlowInfo aspect data"
+  dataJobCreation:
+    description: "Creates HAS_JOB relationships when DataJob entities are created"
     rules:
-      - entity_type: "DataFlow"
+      - entity_type: "DataJob"
         relationship_type: "HAS_JOB"
         source_entity: "DataFlow"
         target_entity: "DataJob"
-        direction: "outgoing"
+        direction: "incoming"
         field_mapping:
-          source_field: "jobs[]"
+          source_field: "flow_urn"
           source_entity_type: "DataFlow"
           source_urn_field: "urn"
           target_entity_type: "DataJob"
           target_urn_field: "urn"
-          target_urn_template: "{source_urn}#{source_field}"
+
   
 
   

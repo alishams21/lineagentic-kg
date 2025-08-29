@@ -209,12 +209,16 @@ class URNGenerator:
                                 context[field_name] = generators[item](**context)
                 else:
                     # This is the sanitize list - only apply sanitization to fields specified here
+                    # Get the pattern to check which fields should actually be sanitized
+                    pattern = context.get('pattern', {})
+                    sanitize_fields = pattern.get('sanitize', []) if isinstance(pattern, dict) else []
+                    
                     for item in field_value:
                         if isinstance(item, str):
                             if item in context and context[item]:
                                 if isinstance(context[item], str):
-                                    # Only apply sanitize_id utility function to sanitize fields
-                                    if 'sanitize_id' in utils:
+                                    # Only apply sanitize_id utility function to fields that are in the sanitize list
+                                    if 'sanitize_id' in utils and item in sanitize_fields:
                                         try:
                                             context[item] = utils['sanitize_id'](context[item])
                                         except:
@@ -317,4 +321,4 @@ class AspectProcessor:
                 context[f'field_{field_name}'] = field_value
         except Exception as e:
             print(f"Error processing aspect field '{field_name}' with value {field_value}: {e}")
-            raise
+            raise 
