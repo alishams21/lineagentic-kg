@@ -2,16 +2,18 @@
   <img src="https://raw.githubusercontent.com/lineagentic/lineagentic-catalog/main/images/lineagenticcatalog.jpg" alt="Lineagentic Logo" width="880" height="300">
 </div>
 
-# Lineagentic-Catalog
+# Lineagentic-KG
 
-Lineagentic-Catalog is more than just a data catalog—it's a graph-native metadata platform that turns simple YAML definitions into a fully operational, customizable, and governed data model. With extendability built in, automatic generation of REST APIs, automatic generation of CLI tooling it delivers a "batteries included" experience for modern data teams.
+Lineagentic-KG is a knowledge graph builder that converts simple YAML definitions into a fully operational and customizable knowledge graph. While one key use case is building a data catalog, the framework is generic and extensible—making it easy to define entities, aspects, and relationships for any domain.
 
-## Features
-- **Generic Metadata Model Generator**: Highly customizable metadata model that can be extended to support new entities, aspects, and relationships. 
-- **REST APIs Generator**: Generate FastAPI endpoints from registry system.
-- **CLI Tooling Generator**: Generate CLI commands from registry system.
-- **Type Safety**: Generated code ensures proper data handling
+With automatic REST API and CLI tooling generation, Lineagentic-KG delivers a “batteries included” experience for quickly turning YAML into production-ready graph-based systems.
 
+##Features
+
+- **Generic Metadata Model Generator**: Define flexible, extensible models with entities, aspects, and relationships.
+- **REST API Generator**: Automatically expose FastAPI endpoints from your YAML registry.
+- **CLI Tooling Generator**: Instantly get CLI commands derived from the registry.
+- **Type-Safe Code**: Ensure correctness and reliability in data handling.
 
 ## Quick Start
 
