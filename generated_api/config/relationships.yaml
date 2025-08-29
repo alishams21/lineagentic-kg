@@ -4,7 +4,7 @@
 # Aspect-Driven Relationship Rules
 aspect_relationships:
   ownership:
-    description: "Creates OWNS relationships from ownership aspect data"
+    description: "Creates OWNS and GROUP_OWNS relationships from ownership aspect data"
     rules:
       - entity_type: "Dataset"
         relationship_type: "OWNS"
@@ -15,6 +15,17 @@ aspect_relationships:
           source_field: "owners[].owner"
           source_entity_type: "CorpUser"
           source_urn_field: "username"
+          target_entity_type: "Dataset"
+          target_urn_field: "urn"
+      - entity_type: "Dataset"
+        relationship_type: "GROUP_OWNS"
+        source_entity: "CorpGroup"
+        target_entity: "Dataset"
+        direction: "incoming"
+        field_mapping:
+          source_field: "groupOwners[].group"
+          source_entity_type: "CorpGroup"
+          source_urn_field: "name"
           target_entity_type: "Dataset"
           target_urn_field: "urn"
 
@@ -92,6 +103,21 @@ aspect_relationships:
           target_urn_field: "urn"
           # Use direct URN construction for columns
           use_direct_urns: true
+
+  corpGroupInfo:
+    description: "Creates MEMBER_OF relationships from corpGroupInfo aspect data"
+    rules:
+      - entity_type: "CorpGroup"
+        relationship_type: "MEMBER_OF"
+        source_entity: "CorpUser"
+        target_entity: "CorpGroup"
+        direction: "incoming"
+        field_mapping:
+          source_field: "members[]"
+          source_entity_type: "CorpUser"
+          source_urn_field: "username"
+          target_entity_type: "CorpGroup"
+          target_urn_field: "name"
 
 
   

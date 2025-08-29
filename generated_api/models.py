@@ -219,6 +219,7 @@ class OwnershipAspectUpsertRequest(BaseModel):
     entity_urn: Optional[str] = Field(None, description="Entity URN (optional if entity_creation is configured)")
 
     owners: Any = Field(..., description="owners")
+    groupOwners: Optional[Any] = Field(None, description="groupOwners")
     lastModified: Optional[Any] = Field(None, description="lastModified")
     version: Optional[int] = Field(None, description="Version (for versioned aspects)")
 

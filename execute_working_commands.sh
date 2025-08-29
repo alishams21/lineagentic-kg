@@ -42,7 +42,154 @@ curl -X POST "http://localhost:8000/api/v1/entities/Dataset" \
   }' | jq '.'
 
 echo ""
-echo "3️⃣ Adding datasetProperties to Raw Dataset:"
+echo "3️⃣ Creating CorpUser Entities:"
+echo "-----------------------------"
+curl -X POST "http://localhost:8000/api/v1/entities/CorpUser" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "data_engineering_team"
+  }' | jq '.'
+
+curl -X POST "http://localhost:8000/api/v1/entities/CorpUser" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "crm_team"
+  }' | jq '.'
+
+curl -X POST "http://localhost:8000/api/v1/entities/CorpUser" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "analytics_team"
+  }' | jq '.'
+
+echo ""
+echo "4️⃣ Adding corpUserInfo to CorpUsers:"
+echo "---------------------------------"
+curl -X POST "http://localhost:8000/api/v1/aspects/corpUserInfo" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "CorpUser",
+    "entity_urn": "urn:li:corpuser:data_engineering_team",
+    "displayName": "Data Engineering Team",
+    "email": "data-engineering@company.com",
+    "title": "Data Engineering Team",
+    "department": "Engineering",
+    "active": true
+  }' | jq '.'
+
+curl -X POST "http://localhost:8000/api/v1/aspects/corpUserInfo" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "CorpUser",
+    "entity_urn": "urn:li:corpuser:crm_team",
+    "displayName": "CRM Team",
+    "email": "crm-team@company.com",
+    "title": "CRM Operations Team",
+    "department": "Operations",
+    "active": true
+  }' | jq '.'
+
+curl -X POST "http://localhost:8000/api/v1/aspects/corpUserInfo" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "CorpUser",
+    "entity_urn": "urn:li:corpuser:analytics_team",
+    "displayName": "Analytics Team",
+    "email": "analytics@company.com",
+    "title": "Analytics Team",
+    "department": "Analytics",
+    "active": true
+  }' | jq '.'
+
+echo ""
+echo "5️⃣ Creating CorpGroup Entities:"
+echo "------------------------------"
+curl -X POST "http://localhost:8000/api/v1/entities/CorpGroup" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "data_engineering"
+  }' | jq '.'
+
+curl -X POST "http://localhost:8000/api/v1/entities/CorpGroup" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "crm_operations"
+  }' | jq '.'
+
+curl -X POST "http://localhost:8000/api/v1/entities/CorpGroup" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "analytics"
+  }' | jq '.'
+
+echo ""
+echo "6️⃣ Adding corpGroupInfo to CorpGroups:"
+echo "------------------------------------"
+curl -X POST "http://localhost:8000/api/v1/aspects/corpGroupInfo" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "CorpGroup",
+    "entity_urn": "urn:li:corpGroup:data_engineering",
+    "displayName": "Data Engineering Team",
+    "description": "Team responsible for data infrastructure and ETL pipelines",
+    "email": "data-engineering@company.com",
+    "slack": "#data-engineering",
+    "members": ["data_engineering_team"]
+  }' | jq '.'
+
+curl -X POST "http://localhost:8000/api/v1/aspects/corpGroupInfo" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "CorpGroup",
+    "entity_urn": "urn:li:corpGroup:crm_operations",
+    "displayName": "CRM Operations Team",
+    "description": "Team managing customer relationship data and operations",
+    "email": "crm-ops@company.com",
+    "slack": "#crm-operations",
+    "members": ["crm_team"]
+  }' | jq '.'
+
+curl -X POST "http://localhost:8000/api/v1/aspects/corpGroupInfo" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "CorpGroup",
+    "entity_urn": "urn:li:corpGroup:analytics",
+    "displayName": "Analytics Team",
+    "description": "Team responsible for data analysis and business intelligence",
+    "email": "analytics@company.com",
+    "slack": "#analytics",
+    "members": ["analytics_team"]
+  }' | jq '.'
+
+echo ""
+echo "7️⃣ Creating Tag Entities:"
+echo "------------------------"
+curl -X POST "http://localhost:8000/api/v1/entities/Tag" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "PII"
+  }' | jq '.'
+
+curl -X POST "http://localhost:8000/api/v1/entities/Tag" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "RAW_DATA"
+  }' | jq '.'
+
+curl -X POST "http://localhost:8000/api/v1/entities/Tag" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "ANONYMIZED"
+  }' | jq '.'
+
+curl -X POST "http://localhost:8000/api/v1/entities/Tag" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "PROCESSED_DATA"
+  }' | jq '.'
+
+echo ""
+echo "8️⃣ Adding datasetProperties to Raw Dataset:"
 echo "-------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/datasetProperties" \
   -H "Content-Type: application/json" \
@@ -60,7 +207,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/datasetProperties" \
   }' | jq '.'
 
 echo ""
-echo "4️⃣ Adding datasetProperties to Processed Dataset:"
+echo "9️⃣ Adding datasetProperties to Processed Dataset:"
 echo "------------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/datasetProperties" \
   -H "Content-Type: application/json" \
@@ -78,7 +225,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/datasetProperties" \
   }' | jq '.'
 
 echo ""
-echo "5️⃣ Creating Column for Raw Dataset (customer_email):"
+echo "1️⃣0️⃣ Creating Column for Raw Dataset (customer_email):"
 echo "-----------------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/entities/Column" \
   -H "Content-Type: application/json" \
@@ -88,7 +235,7 @@ curl -X POST "http://localhost:8000/api/v1/entities/Column" \
   }' | jq '.'
 
 echo ""
-echo "6️⃣ Creating Column for Processed Dataset (customer_id):"
+echo "1️⃣1️⃣ Creating Column for Processed Dataset (customer_id):"
 echo "--------------------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/entities/Column" \
   -H "Content-Type: application/json" \
@@ -98,7 +245,7 @@ curl -X POST "http://localhost:8000/api/v1/entities/Column" \
   }' | jq '.'
 
 echo ""
-echo "7️⃣ Adding schemaMetadata to Raw Dataset:"
+echo "1️⃣2️⃣ Adding schemaMetadata to Raw Dataset:"
 echo "----------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/schemaMetadata" \
   -H "Content-Type: application/json" \
@@ -115,7 +262,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/schemaMetadata" \
   }' | jq '.'
 
 echo ""
-echo "8️⃣ Adding schemaMetadata to Processed Dataset:"
+echo "1️⃣3️⃣ Adding schemaMetadata to Processed Dataset:"
 echo "---------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/schemaMetadata" \
   -H "Content-Type: application/json" \
@@ -132,7 +279,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/schemaMetadata" \
   }' | jq '.'
 
 echo ""
-echo "9️⃣ Adding ownership to Raw Dataset:"
+echo "1️⃣4️⃣ Adding ownership to Raw Dataset:"
 echo "----------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
   -H "Content-Type: application/json" \
@@ -143,11 +290,15 @@ curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
       {"owner": "data_engineering_team", "type": "TECHNICAL_OWNER"},
       {"owner": "crm_team", "type": "BUSINESS_OWNER"}
     ],
+    "groupOwners": [
+      {"group": "data_engineering", "type": "TECHNICAL_GROUP"},
+      {"group": "crm_operations", "type": "BUSINESS_GROUP"}
+    ],
     "lastModified": "2024-01-15T10:00:00Z"
   }' | jq '.'
 
 echo ""
-echo "1️⃣0️⃣ Adding ownership to Processed Dataset:"
+echo "1️⃣5️⃣ Adding ownership to Processed Dataset:"
 echo "----------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
   -H "Content-Type: application/json" \
@@ -158,11 +309,15 @@ curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
       {"owner": "data_engineering_team", "type": "TECHNICAL_OWNER"},
       {"owner": "analytics_team", "type": "BUSINESS_OWNER"}
     ],
+    "groupOwners": [
+      {"group": "data_engineering", "type": "TECHNICAL_GROUP"},
+      {"group": "analytics", "type": "BUSINESS_GROUP"}
+    ],
     "lastModified": "2024-01-15T10:00:00Z"
   }' | jq '.'
 
 echo ""
-echo "1️⃣1️⃣ Adding globalTags to Raw Dataset:"
+echo "1️⃣6️⃣ Adding globalTags to Raw Dataset:"
 echo "-----------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/globalTags" \
   -H "Content-Type: application/json" \
@@ -176,7 +331,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/globalTags" \
   }' | jq '.'
 
 echo ""
-echo "1️⃣2️⃣ Adding globalTags to Processed Dataset:"
+echo "1️⃣7️⃣ Adding globalTags to Processed Dataset:"
 echo "----------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/globalTags" \
   -H "Content-Type: application/json" \
@@ -220,7 +375,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/globalTags" \
 #   }' | jq '.'
 
 echo ""
-echo "1️⃣6️⃣ Adding columnProperties to Raw Column:"
+echo "1️⃣8️⃣ Adding columnProperties to Raw Column:"
 echo "-------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/columnProperties" \
   -H "Content-Type: application/json" \
@@ -238,7 +393,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/columnProperties" \
   }' | jq '.'
 
 echo ""
-echo "1️⃣7️⃣ Adding columnProperties to Processed Column:"
+echo "1️⃣9️⃣ Adding columnProperties to Processed Column:"
 echo "------------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/columnProperties" \
   -H "Content-Type: application/json" \
@@ -256,7 +411,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/columnProperties" \
   }' | jq '.'
 
 echo ""
-echo "1️⃣8️⃣ Adding columnTransformation to Processed Column:"
+echo "2️⃣0️⃣ Adding columnTransformation to Processed Column:"
 echo "---------------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/columnTransformation" \
   -H "Content-Type: application/json" \
@@ -270,7 +425,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/columnTransformation" \
   }' | jq '.'
 
 echo ""
-echo "1️⃣9️⃣ Adding datasetTransformation to Raw Dataset:"
+echo "2️⃣1️⃣ Adding datasetTransformation to Raw Dataset:"
 echo "------------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/datasetTransformation" \
   -H "Content-Type: application/json" \
@@ -284,12 +439,12 @@ curl -X POST "http://localhost:8000/api/v1/aspects/datasetTransformation" \
   }' | jq '.'
 
 echo ""
-echo "2️⃣0️⃣ Getting Raw Dataset:"
+echo "2️⃣2️⃣ Getting Raw Dataset:"
 echo "------------------------"
 curl -X GET "http://localhost:8000/api/v1/entities/Dataset/urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)" | jq '.'
 
 echo ""
-echo "2️⃣1️⃣ Getting Processed Dataset:"
+echo "2️⃣3️⃣ Getting Processed Dataset:"
 echo "------------------------------"
 curl -X GET "http://localhost:8000/api/v1/entities/Dataset/urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)" | jq '.'
 

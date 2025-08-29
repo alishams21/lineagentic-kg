@@ -39,6 +39,7 @@ aspects:
     type: versioned
     properties:
       - owners
+      - groupOwners
       - lastModified
     required: ["owners"]
     # Ownership can be attached to multiple entity types
