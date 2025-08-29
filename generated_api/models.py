@@ -286,7 +286,7 @@ class DatasetprofileAspectUpsertRequest(BaseModel):
     sizeInBytes: Optional[Any] = Field(None, description="sizeInBytes")
     lastModified: Optional[Any] = Field(None, description="lastModified")
     partitionCount: Optional[Any] = Field(None, description="partitionCount")
-    version: Optional[int] = Field(None, description="Version (for versioned aspects)")
+    timestamp_ms: Optional[int] = Field(None, description="Timestamp in milliseconds (for timeseries aspects)")
 
     entity_params: Optional[Dict[str, Any]] = Field(None, description="Entity creation parameters")
 
@@ -295,6 +295,7 @@ class DatasetprofileAspectGetRequest(BaseModel):
     """Request model for getting datasetProfile aspect"""
     entity_label: str = Field(..., description="Entity label")
     entity_urn: str = Field(..., description="Entity URN")
+    limit: Optional[int] = Field(100, description="Limit for timeseries aspects")
 
 
 class DatasetprofileAspectDeleteRequest(BaseModel):
@@ -308,8 +309,8 @@ class DatasetprofileAspectResponse(BaseModel):
     entity_label: str = Field(..., description="Entity label")
     entity_urn: str = Field(..., description="Entity URN")
     aspect_name: str = Field(..., description="Aspect name")
-    payload: Dict[str, Any] = Field(..., description="Aspect payload")
-    version: Optional[int] = Field(None, description="Version")
+    payload: List[Dict[str, Any]] = Field(..., description="Aspect payload")
+    timestamp_ms: Optional[int] = Field(None, description="Timestamp")
 
 class CorpuserinfoAspectUpsertRequest(BaseModel):
     """Request model for upserting corpUserInfo aspect"""

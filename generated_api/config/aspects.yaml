@@ -63,7 +63,7 @@ aspects:
       optional_params: ["env"]
   
   datasetProfile:
-    type: versioned
+    type: timeseries
     properties:
       - rowCount
       - columnCount

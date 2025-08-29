@@ -475,7 +475,8 @@ class Neo4jWriterGenerator:
                     
                     if field_value:
                         # Handle comma-separated values generically
-                        if isinstance(field_value, str) and ',' in field_value:
+                        # BUT: Don't split URNs that contain commas as part of their structure
+                        if isinstance(field_value, str) and ',' in field_value and not field_value.startswith('urn:'):
                             values = [v.strip() for v in field_value.split(",") if v.strip()]
                             for value in values:
                                 self._create_relationship_from_field_mapping(
@@ -514,7 +515,8 @@ class Neo4jWriterGenerator:
                 
                 if field_value:
                     # Handle comma-separated values generically
-                    if isinstance(field_value, str) and ',' in field_value:
+                    # BUT: Don't split URNs that contain commas as part of their structure
+                    if isinstance(field_value, str) and ',' in field_value and not field_value.startswith('urn:'):
                         values = [v.strip() for v in field_value.split(",") if v.strip()]
                         for value in values:
                             self._create_relationship_from_entity_field_mapping(
@@ -644,6 +646,18 @@ class Neo4jWriterGenerator:
                 """Resolve target URN based on field mapping"""
                 rule_config = self.registry.get('relationship_rule_config', {})
                 
+                # Special handling for Column entities - always construct proper column URNs
+                if target_entity_type == 'Column' and entity_urn and field_value:
+                    # Direct URN construction for columns: urn:li:column:(dataset_urn,field_path)
+                    return f"urn:li:column:({entity_urn},{field_value})"
+                
+                # Check if we should use direct URN construction for other cases
+                if field_mapping.get('use_direct_urns', False):
+                    if target_entity_type == 'Dataset':
+                        # For datasets, if field_value is already a complete URN, return it directly
+                        if isinstance(field_value, str) and field_value.startswith('urn:'):
+                            return field_value
+                
                 # If target_urn_field is not 'urn', try to find the entity by that field
                 if target_urn_field != rule_config.get('urn_field_name', 'urn'):
                     # Try to find existing entity by the specified field
@@ -716,6 +730,10 @@ class Neo4jWriterGenerator:
                         if source_dataset and field_value:
                             # Direct URN construction without sanitization
                             return f"urn:li:column:({source_dataset},{field_value})"
+                    elif source_entity_type == 'Dataset':
+                        # For datasets, if field_value is already a complete URN, return it directly
+                        if isinstance(field_value, str) and field_value.startswith('urn:'):
+                            return field_value
                 
                 entity_def = self.registry.get('entities', {}).get(source_entity_type)
                 if entity_def:

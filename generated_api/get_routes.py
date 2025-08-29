@@ -291,7 +291,7 @@ async def get_corpUserInfo_aspect(entity_label: str, entity_urn: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/aspects/datasetProfile/{entity_label}/{entity_urn}", response_model=models.DatasetprofileAspectResponse)
-async def get_datasetProfile_aspect(entity_label: str, entity_urn: str):
+async def get_datasetProfile_aspect(entity_label: str, entity_urn: str, limit: int = 100):
     """Get datasetProfile aspect for entity"""
     try:
         factory = factory_wrapper.get_factory_instance()
@@ -304,7 +304,7 @@ async def get_datasetProfile_aspect(entity_label: str, entity_urn: str):
             raise HTTPException(status_code=400, detail=f"Aspect 'datasetProfile' not found. Available aspect methods: {available_methods}")
         
         method = getattr(writer, method_name)
-        result = method(entity_label, entity_urn)
+        result = method(entity_label, entity_urn, limit)
         
         if result is None:
             raise HTTPException(status_code=404, detail=f"datasetProfile aspect not found")
@@ -314,7 +314,7 @@ async def get_datasetProfile_aspect(entity_label: str, entity_urn: str):
             entity_urn=entity_urn,
             aspect_name="datasetProfile",
             payload=result,
-            version=result.get('version') if isinstance(result, dict) else None
+            timestamp_ms=result[0].get('timestamp_ms') if result and len(result) > 0 else None
         )
     except HTTPException:
         raise

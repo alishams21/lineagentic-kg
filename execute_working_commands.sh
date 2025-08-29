@@ -78,7 +78,27 @@ curl -X POST "http://localhost:8000/api/v1/aspects/datasetProperties" \
   }' | jq '.'
 
 echo ""
-echo "5️⃣ Adding schemaMetadata to Raw Dataset:"
+echo "5️⃣ Creating Column for Raw Dataset (customer_email):"
+echo "-----------------------------------------------------"
+curl -X POST "http://localhost:8000/api/v1/entities/Column" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)",
+    "field_path": "customer_email"
+  }' | jq '.'
+
+echo ""
+echo "6️⃣ Creating Column for Processed Dataset (customer_id):"
+echo "--------------------------------------------------------"
+curl -X POST "http://localhost:8000/api/v1/entities/Column" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)",
+    "field_path": "customer_id"
+  }' | jq '.'
+
+echo ""
+echo "7️⃣ Adding schemaMetadata to Raw Dataset:"
 echo "----------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/schemaMetadata" \
   -H "Content-Type: application/json" \
@@ -95,7 +115,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/schemaMetadata" \
   }' | jq '.'
 
 echo ""
-echo "6️⃣ Adding schemaMetadata to Processed Dataset:"
+echo "8️⃣ Adding schemaMetadata to Processed Dataset:"
 echo "---------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/schemaMetadata" \
   -H "Content-Type: application/json" \
@@ -112,7 +132,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/schemaMetadata" \
   }' | jq '.'
 
 echo ""
-echo "7️⃣ Adding ownership to Raw Dataset:"
+echo "9️⃣ Adding ownership to Raw Dataset:"
 echo "----------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
   -H "Content-Type: application/json" \
@@ -127,7 +147,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
   }' | jq '.'
 
 echo ""
-echo "8️⃣ Adding ownership to Processed Dataset:"
+echo "1️⃣0️⃣ Adding ownership to Processed Dataset:"
 echo "----------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
   -H "Content-Type: application/json" \
@@ -142,7 +162,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
   }' | jq '.'
 
 echo ""
-echo "9️⃣ Adding globalTags to Raw Dataset:"
+echo "1️⃣1️⃣ Adding globalTags to Raw Dataset:"
 echo "-----------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/globalTags" \
   -H "Content-Type: application/json" \
@@ -156,7 +176,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/globalTags" \
   }' | jq '.'
 
 echo ""
-echo "🔟 Adding globalTags to Processed Dataset:"
+echo "1️⃣2️⃣ Adding globalTags to Processed Dataset:"
 echo "----------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/globalTags" \
   -H "Content-Type: application/json" \
@@ -198,54 +218,6 @@ curl -X POST "http://localhost:8000/api/v1/aspects/globalTags" \
 #     "lastModified": "2024-01-15T10:00:00Z",
 #     "partitionCount": 1
 #   }' | jq '.'
-
-echo ""
-echo "1️⃣3️⃣ Adding datasetTransformation to Raw Dataset:"
-echo "------------------------------------------------"
-curl -X POST "http://localhost:8000/api/v1/aspects/datasetTransformation" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "entity_label": "Dataset",
-    "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)",
-    "sourceDataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)",
-    "targetDataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)",
-    "transformationType": "data_cleaning_and_hashing",
-    "description": "Raw customer data is cleaned and customer emails are hashed to create anonymized customer IDs"
-  }' | jq '.'
-
-echo ""
-echo "1️⃣3️⃣b Adding datasetTransformation to Processed Dataset (for testing):"
-echo "--------------------------------------------------------------------"
-curl -X POST "http://localhost:8000/api/v1/aspects/datasetTransformation" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "entity_label": "Dataset",
-    "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)",
-    "sourceDataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)",
-    "targetDataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)",
-    "transformationType": "data_cleaning_and_hashing",
-    "description": "Raw customer data is cleaned and customer emails are hashed to create anonymized customer IDs"
-  }' | jq '.'
-
-echo ""
-echo "1️⃣4️⃣ Creating Column for Raw Dataset (customer_email):"
-echo "-----------------------------------------------------"
-curl -X POST "http://localhost:8000/api/v1/entities/Column" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)",
-    "field_path": "customer_email"
-  }' | jq '.'
-
-echo ""
-echo "1️⃣5️⃣ Creating Column for Processed Dataset (customer_id):"
-echo "--------------------------------------------------------"
-curl -X POST "http://localhost:8000/api/v1/entities/Column" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)",
-    "field_path": "customer_id"
-  }' | jq '.'
 
 echo ""
 echo "1️⃣6️⃣ Adding columnProperties to Raw Column:"
@@ -298,12 +270,40 @@ curl -X POST "http://localhost:8000/api/v1/aspects/columnTransformation" \
   }' | jq '.'
 
 echo ""
-echo "1️⃣9️⃣ Getting Raw Dataset:"
+echo "1️⃣9️⃣ Adding datasetTransformation to Raw Dataset:"
+echo "------------------------------------------------"
+curl -X POST "http://localhost:8000/api/v1/aspects/datasetTransformation" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "Dataset",
+    "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)",
+    "sourceDataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)",
+    "targetDataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)",
+    "transformationType": "data_cleaning_and_hashing",
+    "description": "Raw customer data is cleaned and customer emails are hashed to create anonymized customer IDs"
+  }' | jq '.'
+
+echo ""
+echo "2️⃣0️⃣ Adding datasetTransformation to Processed Dataset (for testing):"
+echo "--------------------------------------------------------------------"
+curl -X POST "http://localhost:8000/api/v1/aspects/datasetTransformation" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entity_label": "Dataset",
+    "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)",
+    "sourceDataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)",
+    "targetDataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)",
+    "transformationType": "data_cleaning_and_hashing",
+    "description": "Raw customer data is cleaned and customer emails are hashed to create anonymized customer IDs"
+  }' | jq '.'
+
+echo ""
+echo "2️⃣1️⃣ Getting Raw Dataset:"
 echo "------------------------"
 curl -X GET "http://localhost:8000/api/v1/entities/Dataset/urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)" | jq '.'
 
 echo ""
-echo "2️⃣0️⃣ Getting Processed Dataset:"
+echo "2️⃣2️⃣ Getting Processed Dataset:"
 echo "------------------------------"
 curl -X GET "http://localhost:8000/api/v1/entities/Dataset/urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)" | jq '.'
 
