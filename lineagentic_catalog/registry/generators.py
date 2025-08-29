@@ -16,7 +16,10 @@ class UtilityFunctionBuilder:
         """Create utility functions from registry configuration"""
         utility_functions_def = self.registry.get('utility_functions', {})
         utility_config = self.registry.get('utility_config', {})
-        enabled_functions = self.registry.get('registry_config', {}).get('enabled_utility_functions', [])
+        # Fix the path to match the new configuration structure
+        core_config = self.registry.get('core_config', {})
+        utility_functions_config = core_config.get('utility_functions', {})
+        enabled_functions = utility_functions_config.get('enabled_utility_functions', [])
         
         created_functions = {}
         
@@ -38,6 +41,8 @@ class UtilityFunctionBuilder:
             return self._build_data_masking_function(implementation, utility_config)
         elif func_type == 'timestamp':
             return self._build_timestamp_function(implementation, utility_config)
+        elif func_type == 'urn_generation':
+            return self._build_urn_generation_function(implementation, utility_config)
         else:
             raise ValueError(f"Unknown utility function type: {func_type}")
     
@@ -132,6 +137,19 @@ class UtilityFunctionBuilder:
         else:
             raise ValueError(f"Unknown timestamp operation: {operation}")
 
+    def _build_urn_generation_function(self, implementation: Dict[str, Any], utility_config: Dict[str, Any]) -> Callable:
+        """Build a URN generation function"""
+        operation = implementation.get('operation', '')
+        
+        if operation == 'string_format':
+            template = implementation.get('template', '')
+            
+            def func(**kwargs):
+                return template.format(**kwargs)
+            return func
+        else:
+            raise ValueError(f"Unknown URN generation operation: {operation}")
+
 
 class URNGenerator:
     """Generates URN generator functions from registry patterns"""
@@ -197,33 +215,19 @@ class URNGenerator:
                         context[param] = utils[val](context[param])
             
             elif isinstance(field_value, list):
-                list_config = self.registry.get('list_processing', {})
-                is_dependency_list = any(pattern in field_name.lower() for pattern in list_config.get('dependency_patterns', ['depend']))
-                
-                if is_dependency_list:
-                    for item in field_value:
-                        if isinstance(item, str):
-                            generators = context.get('generators', {})
-                            if item in generators:
-                                field_name = ''.join(['_'+c.lower() if c.isupper() else c for c in item]).lstrip('_') + '_urn'
-                                context[field_name] = generators[item](**context)
-                else:
-                    # This is the sanitize list - only apply sanitization to fields specified here
-                    # Get the pattern to check which fields should actually be sanitized
-                    pattern = context.get('pattern', {})
-                    sanitize_fields = pattern.get('sanitize', []) if isinstance(pattern, dict) else []
-                    
-                    for item in field_value:
-                        if isinstance(item, str):
-                            if item in context and context[item]:
-                                if isinstance(context[item], str):
-                                    # Only apply sanitize_id utility function to fields that are in the sanitize list
-                                    if 'sanitize_id' in utils and item in sanitize_fields:
+                for item in field_value:
+                    if isinstance(item, str):
+                        if item in context and context[item]:
+                            if isinstance(context[item], str):
+                                for util_name, util_func in utils.items():
+                                    # Skip sanitization entirely - no sanitize_id usage
+                                    if util_name != 'sanitize_id':
                                         try:
-                                            context[item] = utils['sanitize_id'](context[item])
+                                            context[item] = util_func(context[item])
+                                            break
                                         except:
-                                            pass  # Skip if sanitization fails
-                            context[f'list_{field_name}'] = field_value
+                                            continue
+                        context[f'list_{field_name}'] = field_value
             
             elif isinstance(field_value, str):
                 string_config = self.registry.get('string_processing', {})
@@ -302,7 +306,9 @@ class AspectProcessor:
                     if param not in context:
                         context[param] = val
                     elif param in context and isinstance(val, str) and val in utils:
-                        context[param] = utils[val](context[param])
+                        # Skip sanitization entirely - no sanitize_id usage
+                        if val != 'sanitize_id':
+                            context[param] = utils[val](context[param])
             
             elif isinstance(field_value, list):
                 for item in field_value:
@@ -310,11 +316,13 @@ class AspectProcessor:
                         if item in context and context[item]:
                             if isinstance(context[item], str):
                                 for util_name, util_func in utils.items():
-                                    try:
-                                        context[item] = util_func(context[item])
-                                        break
-                                    except:
-                                        continue
+                                    # Skip sanitization entirely - no sanitize_id usage
+                                    if util_name != 'sanitize_id':
+                                        try:
+                                            context[item] = util_func(context[item])
+                                            break
+                                        except:
+                                            continue
                         context[f'list_{field_name}'] = field_value
             
             else:
