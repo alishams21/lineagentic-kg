@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help start-databases stop-databases stop-databases-and-clean-data clean-all-stack generate-mermaid-diagram generate-and-run-api generate-cli run-cli
+.PHONY: help start-databases stop-databases stop-databases-and-clean-data clean-all-stack generate-mermaid-diagram generate-and-run-api generate-cli run-cli test test-registry test-api test-cli test-coverage
 
 help:
 	@echo "🚀 Lineagentic Project"
@@ -19,6 +19,13 @@ help:
 	@echo "  - generate-and-run-api: Generate and run the API server"
 	@echo "  - generate-cli: Generate the CLI"
 	@echo "  - run-cli: Run CLI command (e.g., 'make run-cli ARGS=\"health\"')"
+	@echo ""
+	@echo "🧪 Testing Commands:"
+	@echo "  - test: Run all tests"
+	@echo "  - test-registry: Run registry tests only"
+	@echo "  - test-api: Run API generator tests only"
+	@echo "  - test-cli: Run CLI generator tests only"
+	@echo "  - test-coverage: Run tests with coverage report"
 
 	@echo ""
 	@echo "📦 PyPI Publishing Commands:"
@@ -268,3 +275,44 @@ publish-pypi:
 	@echo "Package published to PyPI!"
 	@echo "View at: https://pypi.org/project/lineagentic-kg/"
 	@echo "Install with: pip install lineagentic-kg"
+
+# =============================================================================
+# TESTING COMMANDS ###########################################################
+# =============================================================================
+
+
+
+# Run registry tests only
+test-registry:
+	@echo "🧪 Running registry tests..."
+	@echo "1️⃣ Syncing dependencies with uv..."
+	@uv sync
+	@echo "✅ Dependencies synced!"
+	@echo ""
+	@echo "2️⃣ Running registry test suite..."
+	@python tests/run_registry_tests.py
+	@echo "✅ Registry tests completed!"
+
+# Run API generator tests only
+test-api:
+	@echo "🧪 Running API generator tests..."
+	@echo "1️⃣ Syncing dependencies with uv..."
+	@uv sync
+	@echo "✅ Dependencies synced!"
+	@echo ""
+	@echo "2️⃣ Running API generator test suite..."
+	@python tests/run_api_tests.py
+	@echo "✅ API generator tests completed!"
+
+# Run CLI generator tests only
+test-cli:
+	@echo "🧪 Running CLI generator tests..."
+	@echo "1️⃣ Syncing dependencies with uv..."
+	@uv sync
+	@echo "✅ Dependencies synced!"
+	@echo ""
+	@echo "2️⃣ Running CLI generator test suite..."
+	@python tests/run_cli_tests.py
+	@echo "✅ CLI generator tests completed!"
+
+

@@ -521,6 +521,11 @@ class Neo4jWriterGenerator:
                     target_urn = entity_urn
                 
                 if source_urn and target_urn:
+                    # Prevent self-relationships
+                    if source_urn == target_urn:
+                        print(f"   ⚠️ Skipped self-relationship: {source_urn} -> {relationship_type} -> {target_urn}")
+                        return
+                    
                     # Extract relationship properties from data if specified
                     relationship_props = {}
                     if 'relationship_properties' in field_mapping:

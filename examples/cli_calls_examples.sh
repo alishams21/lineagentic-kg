@@ -11,7 +11,7 @@ echo "⏳ CLI should be ready..."
 sleep 2
 
 # Set the registry path environment variable
-export REGISTRY_PATH="../lineagentic_kg/config/main_registry.yaml"
+export REGISTRY_PATH="lineagentic_kg/config/main_registry.yaml"
 
 echo ""
 echo "📋 Executing Data Lineage Scenario via CLI:"
@@ -79,12 +79,12 @@ make run-cli ARGS="upsert-tag --key PROCESSED_DATA --value ''"
 echo ""
 echo "9️⃣ Adding datasetProperties to Raw Dataset:"
 echo "-------------------------------------------"
-make run-cli ARGS="upsert-datasetproperties-aspect --platform snowflake --name customer_raw_data --env PROD --description 'Raw customer data from source systems' --customProperties '{\"data_source\": \"CRM System\", \"ingestion_frequency\": \"daily\", \"data_quality\": \"raw\"}' --tags '[\"raw\", \"customer\", \"crm\"]' --externalUrl https://snowflake.company.com/raw/customer_raw_data
+make run-cli ARGS="upsert-datasetproperties-aspect --platform snowflake --name customer_raw_data --env PROD --description 'Raw customer data from source systems' --customProperties '{\"data_source\": \"CRM System\", \"ingestion_frequency\": \"daily\", \"data_quality\": \"raw\"}' --tags '[\"raw\", \"customer\", \"crm\"]' --externalUrl https://snowflake.company.com/raw/customer_raw_data"
 
 echo ""
 echo "1️⃣0️⃣ Adding datasetProperties to Processed Dataset:"
 echo "------------------------------------------------"
-make run-cli ARGS="upsert-datasetproperties-aspect --platform snowflake --name customer_processed_data --env PROD --description 'Processed and cleaned customer data for analytics' --customProperties '{\"data_source\": \"ETL Pipeline\", \"ingestion_frequency\": \"daily\", \"data_quality\": \"processed\"}' --tags '[\"processed\", \"customer\", \"analytics\"]' --externalUrl https://snowflake.company.com/processed/customer_processed_data
+make run-cli ARGS="upsert-datasetproperties-aspect --platform snowflake --name customer_processed_data --env PROD --description 'Processed and cleaned customer data for analytics' --customProperties '{\"data_source\": \"ETL Pipeline\", \"ingestion_frequency\": \"daily\", \"data_quality\": \"processed\"}' --tags '[\"processed\", \"customer\", \"analytics\"]' --externalUrl https://snowflake.company.com/processed/customer_processed_data"
 
 echo ""
 echo "1️⃣1️⃣ Creating Column for Raw Dataset (customer_email):"

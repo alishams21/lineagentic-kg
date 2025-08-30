@@ -9,8 +9,8 @@ import inspect
 from typing import Any, Dict, List, Set, Optional
 from pathlib import Path
 
-from ..utils.logging_config import get_logger, log_function_call, log_function_result, log_error_with_context
-from ..registry.factory import RegistryFactory
+from lineagentic_kg.utils.logging_config import get_logger, log_function_call, log_function_result, log_error_with_context
+from lineagentic_kg.registry.factory import RegistryFactory
 
 
 class CLIGenerator:

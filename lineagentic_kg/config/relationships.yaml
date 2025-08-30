@@ -69,17 +69,18 @@ aspect_relationships:
   datasetTransformation:
     description: "Creates DOWNSTREAM_OF relationships from datasetTransformation aspect data"
     rules:
-      # Rule that creates DOWNSTREAM_OF relationship from targetDataset to sourceDataset
-      # The processed dataset (targetDataset) is downstream of the raw dataset (sourceDataset)
+      # Rule that creates DOWNSTREAM_OF relationship from processed dataset to raw dataset
+      # The processed dataset (entity) is downstream of the raw dataset (sourceDataset)
       - entity_type: "Dataset"
         relationship_type: "DOWNSTREAM_OF"
         source_entity: "Dataset"
         target_entity: "Dataset"
         direction: "outgoing"
         field_mapping:
-          # Map targetDataset as source and sourceDataset as target
-          # This creates: targetDataset -> DOWNSTREAM_OF -> sourceDataset
-          source_field: "targetDataset"
+          # The entity this aspect is attached to (processed dataset) is the source
+          # The sourceDataset field contains the raw dataset that should be the target
+          # This creates: processed_dataset -> DOWNSTREAM_OF -> raw_dataset
+          source_field: "sourceDataset"
           source_entity_type: "Dataset"
           source_urn_field: "urn"
           target_entity_type: "Dataset"

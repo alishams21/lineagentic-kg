@@ -4,7 +4,7 @@
 
 # Lineagentic-KG
 
-Lineagentic-KG is a knowledge graph builder library that converts simple YAML definitions into a fully operational and customizable knowledge graph. While one key use case is building a data catalog, the framework is generic and extensible—making it easy to define entities, aspects, and relationships for any domain.
+Lineagentic-KG is a knowledge graph builder library that converts YAML definitions into a fully operational and customizable knowledge graph. While one key use case is building a data catalog, the framework is generic and extensible—making it easy to define entities, aspects, and relationships for any domain.
 
 With automatic REST API and CLI tooling generation, Lineagentic-KG delivers a “batteries included” experience for quickly turning YAML into production-ready knowledge graph.
 
