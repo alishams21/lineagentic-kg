@@ -19,6 +19,16 @@ entities:
       datasetProfile: timeseries
       datasetTransformation: versioned
       dataQuality: versioned
+    property_extraction:
+      urn_parsing:
+        pattern: "urn:li:dataset:\\(urn:li:dataPlatform:([^,]+),([^,]+),([^)]+)\\)"
+        mappings:
+          - source_group: 1
+            target_property: "platform"
+          - source_group: 2
+            target_property: "name"
+          - source_group: 3
+            target_property: "env"
 
   CorpUser:
     key: corpUserKey
@@ -28,6 +38,12 @@ entities:
     aspects:
       corpUserInfo: versioned
       ownership: versioned
+    property_extraction:
+      urn_parsing:
+        pattern: "urn:li:corpuser:([^,]+)"
+        mappings:
+          - source_group: 1
+            target_property: "username"
 
   CorpGroup:
     key: corpGroupKey
@@ -37,6 +53,12 @@ entities:
     aspects:
       corpGroupInfo: versioned
       ownership: versioned
+    property_extraction:
+      urn_parsing:
+        pattern: "urn:li:corpGroup:([^,]+)"
+        mappings:
+          - source_group: 1
+            target_property: "name"
 
   Tag:
     key: tagKey
@@ -45,6 +67,14 @@ entities:
       - key
       - value
     aspects: {}
+    property_extraction:
+      urn_parsing:
+        pattern: "urn:li:tag:([^=]+)(?:=(.+))?"
+        mappings:
+          - source_group: 1
+            target_property: "key"
+          - source_group: 2
+            target_property: "value"
 
   Column:
     key: columnKey
@@ -55,6 +85,14 @@ entities:
     aspects:
       columnProperties: versioned
       columnTransformation: versioned
+    property_extraction:
+      urn_parsing:
+        pattern: "urn:li:column:\\(([^,]+),([^)]+)\\)"
+        mappings:
+          - source_group: 1
+            target_property: "dataset_urn"
+          - source_group: 2
+            target_property: "field_path"
 
   DataProduct:
     key: dataProductKey
@@ -69,3 +107,13 @@ entities:
       dpObservability: versioned
       dpPolicy: versioned
       dpProvisioner: versioned
+    property_extraction:
+      urn_parsing:
+        pattern: "urn:li:dataProduct:\\(([^,]+),([^,]+),([^)]+)\\)"
+        mappings:
+          - source_group: 1
+            target_property: "domain"
+          - source_group: 2
+            target_property: "name"
+          - source_group: 3
+            target_property: "env"

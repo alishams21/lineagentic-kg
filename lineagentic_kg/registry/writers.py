@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Dict, Type, Callable, List
 from neo4j import GraphDatabase
 
@@ -106,7 +107,7 @@ class Neo4jWriterGenerator:
                     
                     for rule in aspect_rules.get(rules_field, []):
                         if rule.get(entity_type_field) == entity_type:
-                            self._apply_aspect_relationship_rule(entity_urn, entity_type, combined_data, rule)
+                            self._apply_relationship_rule_generic(entity_urn, entity_type, combined_data, rule)
                 
                 setattr(self, 'discover_relationships_from_aspect', discover_relationships_from_aspect.__get__(self))
                 
@@ -114,6 +115,7 @@ class Neo4jWriterGenerator:
                     """Discover and create relationships from entity properties using YAML-driven rules"""
                     print(f"🔍 Discovering relationships for entity {entity_type}:{entity_urn}")
                     print(f"🔍 Entity properties: {entity_props}")
+                    
                     # Look for entity creation relationships (not aspect-driven)
                     for aspect_name, aspect_rules in self.registry.get(aspect_relationships_section, {}).items():
                         print(f"🔍 Checking aspect: {aspect_name}, ends with 'Creation': {aspect_name.endswith('Creation')}")
@@ -123,7 +125,7 @@ class Neo4jWriterGenerator:
                                 print(f"🔍 Rule entity_type: {rule.get(entity_type_field)}, target: {entity_type}")
                                 if rule.get(entity_type_field) == entity_type:
                                     print(f"🔍 Applying entity relationship rule for {entity_type}")
-                                    self._apply_entity_relationship_rule(entity_urn, entity_type, entity_props, rule)
+                                    self._apply_relationship_rule_generic(entity_urn, entity_type, entity_props, rule)
                 
                 setattr(self, 'discover_relationships_from_entity', discover_relationships_from_entity.__get__(self))
             
@@ -149,6 +151,15 @@ class Neo4jWriterGenerator:
                                 elif entity_urn is None:
                                     raise ValueError(f"entity_urn is required for aspect {aspect_name}")
                                 
+                                # If payload is None, extract it from entity_params
+                                if payload is None:
+                                    # Get aspect properties from registry
+                                    aspect_properties = self.registry.get('aspects', {}).get(aspect_name, {}).get('properties', [])
+                                    payload = {}
+                                    for prop in aspect_properties:
+                                        if prop in entity_params:
+                                            payload[prop] = entity_params[prop]
+                                
                                 result = self._upsert_versioned_aspect_generic(entity_label, entity_urn, aspect_name, payload, version)
                                 self.discover_relationships_from_aspect(entity_urn, entity_label, aspect_name, payload)
                                 return result
@@ -159,6 +170,15 @@ class Neo4jWriterGenerator:
                                     entity_label = entity_creation['entity_type']
                                 elif entity_urn is None:
                                     raise ValueError(f"entity_urn is required for aspect {aspect_name}")
+                                
+                                # If payload is None, extract it from entity_params
+                                if payload is None:
+                                    # Get aspect properties from registry
+                                    aspect_properties = self.registry.get('aspects', {}).get(aspect_name, {}).get('properties', [])
+                                    payload = {}
+                                    for prop in aspect_properties:
+                                        if prop in entity_params:
+                                            payload[prop] = entity_params[prop]
                                 
                                 self._append_timeseries_aspect_generic(entity_label, entity_urn, aspect_name, payload, timestamp_ms)
                                 self.discover_relationships_from_aspect(entity_urn, entity_label, aspect_name, payload)
@@ -403,8 +423,8 @@ class Neo4jWriterGenerator:
                 
                 return entity_urn
             
-            def _apply_aspect_relationship_rule(self, entity_urn: str, entity_type: str, aspect_data: Dict[str, Any], rule: Dict[str, Any]):
-                """Apply a single aspect relationship rule to create relationships"""
+            def _apply_relationship_rule_generic(self, entity_urn: str, entity_type: str, data: Dict[str, Any], rule: Dict[str, Any]):
+                """Apply a single relationship rule to create relationships using generic configuration"""
                 rule_config = self.registry.get('relationship_rule_config', {})
                 relationship_type_field = rule_config.get('relationship_type_field', 'relationship_type')
                 source_entity_field = rule_config.get('source_entity_field', 'source_entity')
@@ -422,114 +442,59 @@ class Neo4jWriterGenerator:
                 source_field = field_mapping[rule_config.get('source_field_name', 'source_field')]
                 target_field = field_mapping.get(rule_config.get('target_field_name', 'target_field'), rule_config.get('default_target_field', 'urn'))
                 
-                array_separator = rule_config.get('array_separator', '[]')
+                # Generic field value extraction
+                field_values = self._extract_field_values_generic(source_field, data)
+                
+                for field_value in field_values:
+                    if field_value:
+                        self._create_relationship_from_field_mapping_generic(
+                            entity_urn, entity_type, data, rule, field_value
+                        )
+                
+                # Handle additional relationships
+                additional_relationships = rule.get(additional_relationships_field, [])
+                for additional_rule in additional_relationships:
+                    self._create_additional_relationship_generic(entity_urn, entity_type, data, additional_rule)
+            
+            def _extract_field_values_generic(self, source_field: str, data: Dict[str, Any]) -> List[Any]:
+                """Generic field value extraction supporting arrays and direct fields"""
+                array_separator = '[]'
+                
                 if array_separator in source_field:
                     base_field, sub_field = source_field.split(array_separator)
                     base_field = base_field.strip('.')
                     sub_field = sub_field.strip('.')
                     
-                    # Try to get array data from aspect_data first, then from entity properties
-                    array_data = aspect_data.get(base_field, [])
-                    print(f"   🔍 Looking for array field '{base_field}' in aspect_data: {array_data}")
+                    array_data = data.get(base_field, [])
                     if not isinstance(array_data, list):
-                        # If not found in aspect_data, try to get from entity properties
-                        entity_props = self._get_entity_generic(entity_type, entity_urn)
-                        print(f"   🔍 Entity properties for {entity_type}:{entity_urn}: {entity_props}")
-                        if entity_props and base_field in entity_props:
-                            array_data = entity_props[base_field]
-                            print(f"   🔍 Found '{base_field}' in entity properties: {array_data}")
-                            if isinstance(array_data, str) and ',' in array_data:
-                                # Handle comma-separated string as array
-                                array_data = [item.strip() for item in array_data.split(',') if item.strip()]
-                                print(f"   🔍 Converted comma-separated string to array: {array_data}")
-                            elif not isinstance(array_data, list):
-                                array_data = [array_data] if array_data else []
-                                print(f"   🔍 Converted single value to array: {array_data}")
+                        if isinstance(array_data, str) and ',' in array_data:
+                            array_data = [item.strip() for item in array_data.split(',') if item.strip()]
+                        elif array_data:
+                            array_data = [array_data]
                         else:
-                            print(f"   ⚠️ Field '{base_field}' not found in aspect_data or entity properties")
-                            return
+                            array_data = []
                     
+                    values = []
                     for item in array_data:
                         if sub_field:
                             if isinstance(item, dict) and sub_field in item:
-                                field_value = item[sub_field]
-                                self._create_relationship_from_field_mapping(
-                                    entity_urn, entity_type, aspect_data, rule, field_value
-                                )
+                                values.append(item[sub_field])
                         else:
-                            field_value = item
-                            self._create_relationship_from_field_mapping(
-                                entity_urn, entity_type, aspect_data, rule, field_value
-                            )
+                            values.append(item)
+                    return values
                 else:
-                    # Try to get field value from aspect_data first, then from entity properties
-                    field_value = aspect_data.get(source_field)
-                    print(f"   🔍 Looking for field '{source_field}' in aspect_data: {field_value}")
+                    field_value = data.get(source_field)
                     if field_value is None:
-                        # If not found in aspect_data, try to get from entity properties
-                        entity_props = self._get_entity_generic(entity_type, entity_urn)
-                        print(f"   🔍 Entity properties for {entity_type}:{entity_urn}: {entity_props}")
-                        if entity_props and source_field in entity_props:
-                            field_value = entity_props[source_field]
-                            print(f"   🔍 Found '{source_field}' in entity properties: {field_value}")
+                        return []
                     
-                    if field_value:
-                        # Handle comma-separated values generically
-                        # BUT: Don't split URNs that contain commas as part of their structure
-                        if isinstance(field_value, str) and ',' in field_value and not field_value.startswith('urn:'):
-                            values = [v.strip() for v in field_value.split(",") if v.strip()]
-                            for value in values:
-                                self._create_relationship_from_field_mapping(
-                                    entity_urn, entity_type, aspect_data, rule, value
-                                )
-                        else:
-                            self._create_relationship_from_field_mapping(
-                                entity_urn, entity_type, aspect_data, rule, field_value
-                            )
-                
-                additional_relationships = rule.get(additional_relationships_field, [])
-                for additional_rule in additional_relationships:
-                    self._create_additional_relationship(entity_urn, entity_type, aspect_data, additional_rule)
-            
-            def _apply_entity_relationship_rule(self, entity_urn: str, entity_type: str, entity_props: Dict[str, Any], rule: Dict[str, Any]):
-                """Apply a single entity relationship rule to create relationships"""
-                rule_config = self.registry.get('relationship_rule_config', {})
-                relationship_type_field = rule_config.get('relationship_type_field', 'relationship_type')
-                source_entity_field = rule_config.get('source_entity_field', 'source_entity')
-                target_entity_field = rule_config.get('target_entity_field', 'target_entity')
-                direction_field = rule_config.get('direction_field', 'direction')
-                field_mapping_field = rule_config.get('field_mapping_field', 'field_mapping')
-                
-                relationship_type = rule[relationship_type_field]
-                source_entity = rule[source_entity_field]
-                target_entity = rule[target_entity_field]
-                direction = rule.get(direction_field, rule_config.get('default_direction', 'outgoing'))
-                field_mapping = rule[field_mapping_field]
-                
-                source_field = field_mapping[rule_config.get('source_field_name', 'source_field')]
-                target_field = field_mapping.get(rule_config.get('target_field_name', 'target_field'), rule_config.get('default_target_field', 'urn'))
-                
-                # Get field value from entity properties
-                field_value = entity_props.get(source_field)
-                print(f"   🔍 Looking for field '{source_field}' in entity properties: {field_value}")
-                
-                if field_value:
                     # Handle comma-separated values generically
-                    # BUT: Don't split URNs that contain commas as part of their structure
                     if isinstance(field_value, str) and ',' in field_value and not field_value.startswith('urn:'):
-                        values = [v.strip() for v in field_value.split(",") if v.strip()]
-                        for value in values:
-                            self._create_relationship_from_entity_field_mapping(
-                                entity_urn, entity_type, entity_props, rule, value
-                            )
+                        return [v.strip() for v in field_value.split(",") if v.strip()]
                     else:
-                        self._create_relationship_from_entity_field_mapping(
-                            entity_urn, entity_type, entity_props, rule, field_value
-                        )
+                        return [field_value]
             
-            def _create_relationship_from_entity_field_mapping(self, entity_urn: str, entity_type: str, entity_props: Dict[str, Any], rule: Dict[str, Any], field_value: Any):
-                """Create a relationship based on entity field mapping rule"""
-                print(f"   🔗 Creating entity relationship with field_value: {field_value}")
+            def _create_relationship_from_field_mapping_generic(self, entity_urn: str, entity_type: str, data: Dict[str, Any], rule: Dict[str, Any], field_value: Any):
+                """Create a relationship based on generic field mapping rule"""
                 rule_config = self.registry.get('relationship_rule_config', {})
                 relationship_type_field = rule_config.get('relationship_type_field', 'relationship_type')
                 source_entity_field = rule_config.get('source_entity_field', 'source_entity')
@@ -550,66 +515,18 @@ class Neo4jWriterGenerator:
                 
                 if direction == rule_config.get('outgoing_direction', 'outgoing'):
                     source_urn = entity_urn
-                    target_urn = self._resolve_target_urn(field_value, target_entity_type, target_urn_field, entity_props, field_mapping, entity_urn)
+                    target_urn = self._resolve_urn_generic(field_value, target_entity_type, target_urn_field, data, field_mapping, entity_urn)
                 else:  # incoming
-                    source_urn = self._resolve_source_urn(field_value, source_entity_type, source_urn_field, entity_props, field_mapping, entity_urn)
+                    source_urn = self._resolve_urn_generic(field_value, source_entity_type, source_urn_field, data, field_mapping, entity_urn)
                     target_urn = entity_urn
                 
                 if source_urn and target_urn:
-                    self._ensure_entity_exists(target_entity_type, target_urn, field_value, target_urn_field)
-                    # Check if relationship already exists to prevent duplicates
-                    with self._driver.session() as s:
-                        result = s.run(
-                            f"MATCH (a:{source_entity_type} {{urn: $source_urn}})-[r:{relationship_type}]->(b:{target_entity_type} {{urn: $target_urn}}) RETURN r",
-                            source_urn=source_urn, target_urn=target_urn
-                        )
-                        if not result.single():
-                            self._create_relationship_generic(source_entity_type, source_urn, relationship_type, target_entity_type, target_urn, {})
-                        else:
-                            print(f"   ℹ️ Relationship {relationship_type} already exists between {source_urn} and {target_urn}")
-                else:
-                    print(f"   ⚠️ Skipped {relationship_type}: source_urn={source_urn}, target_urn={target_urn}")
-            
-            def _create_relationship_from_field_mapping(self, entity_urn: str, entity_type: str, aspect_data: Dict[str, Any], rule: Dict[str, Any], field_value: Any):
-                """Create a relationship based on field mapping rule"""
-                print(f"   🔗 Creating relationship with field_value: {field_value}")
-                rule_config = self.registry.get('relationship_rule_config', {})
-                relationship_type_field = rule_config.get('relationship_type_field', 'relationship_type')
-                source_entity_field = rule_config.get('source_entity_field', 'source_entity')
-                target_entity_field = rule_config.get('target_entity_field', 'target_entity')
-                direction_field = rule_config.get('direction_field', 'direction')
-                field_mapping_field = rule_config.get('field_mapping_field', 'field_mapping')
-                
-                relationship_type = rule[relationship_type_field]
-                source_entity = rule[source_entity_field]
-                target_entity = rule[target_entity_field]
-                direction = rule.get(direction_field, rule_config.get('default_direction', 'outgoing'))
-                field_mapping = rule[field_mapping_field]
-                
-                source_entity_type = field_mapping[rule_config.get('source_entity_type_name', 'source_entity_type')]
-                target_entity_type = field_mapping[rule_config.get('target_entity_type_name', 'target_entity_type')]
-                source_urn_field = field_mapping[rule_config.get('source_urn_field_name', 'source_urn_field')]
-                target_urn_field = field_mapping[rule_config.get('target_urn_field_name', 'target_urn_field')]
-                
-                if direction == rule_config.get('outgoing_direction', 'outgoing'):
-                    source_urn = entity_urn
-                    target_urn = self._resolve_target_urn(field_value, target_entity_type, target_urn_field, aspect_data, field_mapping, entity_urn)
-                else:  # incoming
-                    source_urn = self._resolve_source_urn(field_value, source_entity_type, source_urn_field, aspect_data, field_mapping, entity_urn)
-                    target_urn = entity_urn
-                
-                if source_urn and target_urn:
-                    # Only ensure entity exists if the URN looks like it might be incomplete
-                    # If it's a complete URN (starts with urn:), don't create placeholder
-                    if not target_urn.startswith('urn:'):
-                        self._ensure_entity_exists(target_entity_type, target_urn, field_value, target_urn_field)
-                    
-                    # Extract relationship properties from aspect data if specified
+                    # Extract relationship properties from data if specified
                     relationship_props = {}
                     if 'relationship_properties' in field_mapping:
-                        for prop_name, aspect_field in field_mapping['relationship_properties'].items():
-                            if aspect_field in aspect_data:
-                                relationship_props[prop_name] = aspect_data[aspect_field]
+                        for prop_name, data_field in field_mapping['relationship_properties'].items():
+                            if data_field in data:
+                                relationship_props[prop_name] = data[data_field]
                     
                     # Check if relationship already exists to prevent duplicates
                     with self._driver.session() as s:
@@ -619,18 +536,15 @@ class Neo4jWriterGenerator:
                         )
                         if not result.single():
                             self._create_relationship_generic(source_entity_type, source_urn, relationship_type, target_entity_type, target_urn, relationship_props)
-                        else:
-                            print(f"   ℹ️ Relationship {relationship_type} already exists between {source_urn} and {target_urn}")
                 else:
                     print(f"   ⚠️ Skipped {relationship_type}: source_urn={source_urn}, target_urn={target_urn}")
             
-            def _create_additional_relationship(self, entity_urn: str, entity_type: str, aspect_data: Dict[str, Any], rule: Dict[str, Any]):
-                """Create additional relationships"""
+            def _create_additional_relationship_generic(self, entity_urn: str, entity_type: str, data: Dict[str, Any], rule: Dict[str, Any]):
+                """Create additional relationships using generic configuration"""
                 rule_config = self.registry.get('relationship_rule_config', {})
                 relationship_type_field = rule_config.get('relationship_type_field', 'relationship_type')
                 source_entity_field = rule_config.get('source_entity_field', 'source_entity')
                 target_entity_field = rule_config.get('target_entity_field', 'target_entity')
-                direction_field = rule_config.get('direction_field', 'direction')
                 field_mapping_field = rule_config.get('field_mapping_field', 'field_mapping')
                 source_field_name = rule_config.get('source_field_name', 'source_field')
                 target_field_name = rule_config.get('target_field_name', 'target_field')
@@ -638,194 +552,166 @@ class Neo4jWriterGenerator:
                 relationship_type = rule[relationship_type_field]
                 source_entity = rule[source_entity_field]
                 target_entity = rule[target_entity_field]
-                direction = rule.get(direction_field, rule_config.get('default_direction', 'outgoing'))
                 field_mapping = rule[field_mapping_field]
                 
                 source_field = field_mapping[source_field_name]
                 target_field = field_mapping[target_field_name]
                 
-                source_urn = aspect_data.get(source_field)
-                target_urn = aspect_data.get(target_field)
+                source_urn = data.get(source_field)
+                target_urn = data.get(target_field)
                 
                 if source_urn and target_urn:
                     self._create_relationship_generic(source_entity, source_urn, relationship_type, target_entity, target_urn, {})
             
-            def _resolve_target_urn(self, field_value: Any, target_entity_type: str, target_urn_field: str, aspect_data: Dict[str, Any], field_mapping: Dict[str, Any], entity_urn: str = None) -> str:
-                """Resolve target URN based on field mapping"""
+            def _resolve_urn_generic(self, field_value: Any, entity_type: str, urn_field: str, 
+                                   data: Dict[str, Any], field_mapping: Dict[str, Any], entity_urn: str = None) -> str:
+                """Generic URN resolution using configuration"""
+                
+                # If field_value is already a complete URN, return it as-is
+                if isinstance(field_value, str) and field_value.startswith('urn:'):
+                    return field_value
+                
+                # Get entity definition from registry
+                entity_def = self.registry.get('entities', {}).get(entity_type)
+                if not entity_def:
+                    return field_value
+                
+                # Get URN pattern configuration
+                urn_generator_name = entity_def.get('urn_generator')
+                urn_pattern = self.registry.get('urn_patterns', {}).get(urn_generator_name)
+                if not urn_pattern:
+                    return field_value
+                
+                # Use configuration-driven resolution
+                resolution_strategy = urn_pattern.get('resolution_strategy', 'template')
+                
+                if resolution_strategy == 'direct':
+                    result = self._resolve_direct_urn(field_value, entity_type, urn_pattern, entity_urn)
+                elif resolution_strategy == 'template':
+                    result = self._resolve_template_urn(field_value, entity_type, urn_pattern, data, entity_urn)
+                elif resolution_strategy == 'lookup':
+                    result = self._resolve_lookup_urn(field_value, entity_type, urn_field, data)
+                else:
+                    result = field_value
+                
+                return result
+            
+            def _resolve_direct_urn(self, field_value: Any, entity_type: str, urn_pattern: Dict[str, Any], entity_urn: str = None) -> str:
+                """Resolve URN using direct construction strategy"""
+                direct_config = urn_pattern.get('direct_construction', {})
+                pattern = direct_config.get('pattern')
+                
+                if pattern:
+                    parent_urn_source = direct_config.get('parent_urn_source')
+                    field_value_source = direct_config.get('field_value_source')
+                    
+                    if parent_urn_source == 'entity_urn' and entity_urn:
+                        return pattern.format(parent_urn=entity_urn, field_value=field_value)
+                    elif field_value_source == 'field_value':
+                        return pattern.format(field_value=field_value)
+                
+                return field_value
+            
+            def _resolve_template_urn(self, field_value: Any, entity_type: str, urn_pattern: Dict[str, Any], 
+                                    data: Dict[str, Any], entity_urn: str = None) -> str:
+                """Resolve URN using template strategy"""
+                entity_def = self.registry.get('entities', {}).get(entity_type)
+                if not entity_def:
+                    return field_value
+                
+                urn_generator_name = entity_def.get('urn_generator')
+                if urn_generator_name and urn_generator_name in self.urn_generators:
+                    urn_generator = self.urn_generators[urn_generator_name]
+                    
+                    # Build parameters for URN generation based on URN pattern configuration
+                    urn_params = {}
+                    
+                    # Get the parameters from the URN pattern
+                    pattern_params = urn_pattern.get('parameters', [])
+                    
+                    # Map field_value to the appropriate parameter based on entity type
+                    if entity_type == 'CorpUser':
+                        urn_params['username'] = field_value
+                    elif entity_type == 'CorpGroup':
+                        urn_params['name'] = field_value
+                    elif entity_type == 'Column':
+                        urn_params['field_path'] = field_value
+                        if entity_urn:
+                            urn_params['dataset_urn'] = entity_urn
+                    else:
+                        # Default mapping for other entity types
+                        if pattern_params and len(pattern_params) > 0:
+                            urn_params[pattern_params[0]] = field_value
+                    
+                    # Add any additional parameters from data that match the pattern parameters
+                    for param in pattern_params:
+                        if param in data and param not in urn_params:
+                            urn_params[param] = data[param]
+                    
+                    try:
+                        return urn_generator(**urn_params)
+                    except Exception as e:
+                        print(f"   ⚠️ URN generation failed for {entity_type}: {e}")
+                        return field_value
+                
+                return field_value
+            
+            def _resolve_lookup_urn(self, field_value: Any, entity_type: str, urn_field: str, data: Dict[str, Any]) -> str:
+                """Resolve URN using database lookup strategy"""
                 rule_config = self.registry.get('relationship_rule_config', {})
                 
-                # Special handling for Column entities - always construct proper column URNs
-                if target_entity_type == 'Column' and entity_urn and field_value:
-                    # Direct URN construction for columns: urn:li:column:(dataset_urn,field_path)
-                    return f"urn:li:column:({entity_urn},{field_value})"
-                
-                # Check if we should use direct URN construction for other cases
-                if field_mapping.get('use_direct_urns', False):
-                    if target_entity_type == 'Dataset':
-                        # For datasets, if field_value is already a complete URN, return it directly
-                        if isinstance(field_value, str) and field_value.startswith('urn:'):
-                            return field_value
-                
-                # If target_urn_field is not 'urn', try to find the entity by that field
-                if target_urn_field != rule_config.get('urn_field_name', 'urn'):
-                    # Try to find existing entity by the specified field
+                if urn_field != rule_config.get('urn_field_name', 'urn'):
                     with self._driver.session() as s:
                         result = s.run(
-                            f"MATCH (e:{target_entity_type} {{{target_urn_field}: $value}}) WHERE e.urn IS NOT NULL RETURN e.urn as urn ORDER BY e.urn LIMIT 1",
+                            f"MATCH (e:{entity_type} {{{urn_field}: $value}}) WHERE e.urn IS NOT NULL RETURN e.urn as urn ORDER BY e.urn LIMIT 1",
                             value=field_value
                         )
                         record = result.single()
                         if record and record['urn']:
                             return record['urn']
                         else:
-                            print(f"   ⚠️ Could not find {target_entity_type} with {target_urn_field}={field_value}")
+                            print(f"   ⚠️ Could not find {entity_type} with {urn_field}={field_value}")
                             return None
-                
-                if target_urn_field == rule_config.get('urn_field_name', 'urn'):
-                    urn_template = field_mapping.get('target_urn_template')
-                    if urn_template:
-                        entity_def = self.registry.get('entities', {}).get(target_entity_type)
-                        if entity_def:
-                            urn_generator_name = entity_def.get('urn_generator')
-                            if urn_generator_name and urn_generator_name in self.urn_generators:
-                                urn_generator = self.urn_generators[urn_generator_name]
-                                
-                                urn_params = {}
-                                
-                                # Generic template parameter resolution
-                                import re
-                                template_vars = re.findall(r'\{([^}]+)\}', urn_template)
-                                for param_name in template_vars:
-                                    if param_name == 'source_urn' and entity_urn:
-                                        urn_params[param_name] = entity_urn
-                                    elif param_name == 'source_field':
-                                        urn_params['field_path'] = field_value
-                                    elif param_name == 'sourceDataset':
-                                        urn_params['dataset_urn'] = aspect_data.get('sourceDataset')
-                                    elif param_name == 'targetDataset':
-                                        urn_params['dataset_urn'] = aspect_data.get('targetDataset')
-                                    elif param_name == 'field_path':
-                                        urn_params['field_path'] = field_value
-                                    elif param_name == 'dataset_urn' and entity_urn:
-                                        urn_params['dataset_urn'] = entity_urn
-                                    elif param_name in aspect_data:
-                                        urn_params[param_name] = aspect_data[param_name]
-                                
-
-                                
-                                for param in entity_def.get('properties', []):
-                                    if param in aspect_data and param not in urn_params:
-                                        urn_params[param] = aspect_data[param]
-                                
-                                try:
-                                    return urn_generator(**urn_params)
-                                except Exception as e:
-                                    print(f"   ⚠️ URN generation failed for {target_entity_type}: {e}")
-                                    return field_value
-                    return field_value
-                else:
-                    return field_value
-            
-            def _resolve_source_urn(self, field_value: Any, source_entity_type: str, source_urn_field: str, aspect_data: Dict[str, Any], field_mapping: Dict[str, Any], entity_urn: str = None) -> str:
-                """Resolve source URN based on field mapping"""
-                rule_config = self.registry.get('relationship_rule_config', {})
-                
-                # Check if we should use direct URN construction
-                if field_mapping.get('use_direct_urns', False):
-                    if source_entity_type == 'Column':
-                        # For columns, construct URN directly using sourceDataset and field_value
-                        source_dataset = aspect_data.get('sourceDataset')
-                        if source_dataset and field_value:
-                            # Direct URN construction without sanitization
-                            return f"urn:li:column:({source_dataset},{field_value})"
-                    elif source_entity_type == 'Dataset':
-                        # For datasets, if field_value is already a complete URN, return it directly
-                        if isinstance(field_value, str) and field_value.startswith('urn:'):
-                            return field_value
-                
-                entity_def = self.registry.get('entities', {}).get(source_entity_type)
-                if entity_def:
-                    urn_generator_name = entity_def.get('urn_generator')
-                    if urn_generator_name and urn_generator_name in self.urn_generators:
-                        urn_generator = self.urn_generators[urn_generator_name]
-                        
-                        urn_params = {}
-                        
-                        if source_urn_field == 'username':
-                            urn_params['username'] = field_value
-                        elif source_urn_field == 'name':
-                            urn_params['name'] = field_value
-                        elif source_urn_field == rule_config.get('urn_field_name', 'urn'):
-                            source_urn_template = field_mapping.get('source_urn_template')
-                            if source_urn_template:
-                                # Handle template resolution for source URN generically
-                                import re
-                                template_vars = re.findall(r'\{([^}]+)\}', source_urn_template)
-                                for param_name in template_vars:
-                                    if param_name == 'source_field':
-                                        urn_params['field_path'] = field_value
-                                    elif param_name == 'sourceDataset':
-                                        urn_params['dataset_urn'] = aspect_data.get('sourceDataset')
-                                    elif param_name == 'targetDataset':
-                                        urn_params['dataset_urn'] = aspect_data.get('targetDataset')
-                                    elif param_name == 'field_path':
-                                        urn_params['field_path'] = field_value
-                                    elif param_name == 'dataset_urn' and entity_urn:
-                                        urn_params['dataset_urn'] = entity_urn
-                                    elif param_name in aspect_data:
-                                        urn_params[param_name] = aspect_data[param_name]
-                            else:
-                                urn_params[rule_config.get('urn_field_name', 'urn')] = field_value
-                        
-                        try:
-                            return urn_generator(**urn_params)
-                        except Exception as e:
-                            print(f"   ⚠️ Source URN generation failed for {source_entity_type}: {e}")
-                            return field_value
                 
                 return field_value
             
-            def _ensure_entity_exists(self, entity_type: str, entity_urn: str, field_value: Any, urn_field: str):
-                """Ensure target entity exists before creating relationship"""
-                rule_config = self.registry.get('relationship_rule_config', {})
-                
+            def _ensure_entity_exists_generic(self, entity_type: str, entity_urn: str, field_value: Any, urn_field: str):
+                """Ensure target entity exists using generic property extraction"""
                 entity_def = self.registry.get('entities', {}).get(entity_type)
                 if not entity_def:
                     print(f"   ⚠️ Entity type '{entity_type}' not found in registry")
                     return
                 
-                entity_properties = entity_def.get('properties', [])
+                # Extract properties using configuration-driven parsing
+                props = self._extract_entity_properties_generic(entity_urn, entity_def)
                 
-                props = {rule_config.get('urn_field_name', 'urn'): entity_urn}
-                
-                if urn_field in entity_properties:
+                # Add the field value if it's a valid property
+                if urn_field in entity_def.get('properties', []):
                     props[urn_field] = field_value
                 
-                # Generic URN parsing for entities that might have composite URNs
-                # This handles cases like "dataset_urn#field_path" format or "urn:li:column:(dataset_urn,field_path)"
-                if '#' in entity_urn:
-                    parts = entity_urn.split('#', 1)
-                    if len(parts) == 2:
-                        # Try to map parts to entity properties based on common patterns
-                        for prop in entity_properties:
-                            if 'dataset' in prop.lower() and 'urn' in prop.lower():
-                                props[prop] = parts[0]
-                            elif 'field' in prop.lower() or 'path' in prop.lower():
-                                props[prop] = parts[1]
-                elif 'urn:li:column:(' in entity_urn:
-                    # Handle Column URN format: urn:li:column:(dataset_urn,field_path)
-                    import re
-                    match = re.search(r'urn:li:column:\(([^,]+),([^)]+)\)', entity_urn)
-                    if match:
-                        part1 = match.group(1)
-                        part2 = match.group(2)
-                        # Map parts to entity properties based on position and common patterns
-                        for prop in entity_properties:
-                            if 'dataset' in prop.lower() and 'urn' in prop.lower():
-                                props[prop] = part1
-                            elif 'field' in prop.lower() or 'path' in prop.lower():
-                                props[prop] = part2
-                
                 self._upsert_entity_generic(entity_type, entity_urn, props)
+            
+            def _extract_entity_properties_generic(self, entity_urn: str, entity_def: Dict[str, Any]) -> Dict[str, Any]:
+                """Extract entity properties using configuration-driven parsing"""
+                props = {'urn': entity_urn}
+                
+                property_extraction = entity_def.get('property_extraction', {})
+                urn_parsing = property_extraction.get('urn_parsing', {})
+                
+                if urn_parsing:
+                    pattern = urn_parsing.get('pattern')
+                    mappings = urn_parsing.get('mappings', [])
+                    
+                    if pattern and mappings:
+                        import re
+                        match = re.search(pattern, entity_urn)
+                        if match:
+                            for mapping in mappings:
+                                source_group = mapping.get('source_group')
+                                target_property = mapping.get('target_property')
+                                if source_group and target_property:
+                                    props[target_property] = match.group(source_group)
+                
+                return props
         
         return DynamicNeo4jMetadataWriter

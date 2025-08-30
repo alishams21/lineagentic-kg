@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Execute Working Curl Commands for LineAgentic Catalog API
+# Execute Working Curl Commands for LineAgentic KG API
 # This script creates a raw and processed dataset scenario with proper data lineage
 
 echo "🚀 Executing Raw to Processed Data Lineage Scenario"
 echo "=================================================="
 
 # Set the registry path environment variable
-export REGISTRY_PATH="lineagentic_catalog/config/main_registry.yaml"
+export REGISTRY_PATH="lineagentic_kg/config/main_registry.yaml"
 
 # Wait for API to be ready
 echo "⏳ Waiting for API to be ready..."
@@ -70,11 +70,11 @@ curl -X POST "http://localhost:8000/api/v1/aspects/corpUserInfo" \
   -d '{
     "entity_label": "CorpUser",
     "entity_urn": "urn:li:corpuser:data_engineering_team",
+    "active": true,
     "displayName": "Data Engineering Team",
     "email": "data-engineering@company.com",
     "title": "Data Engineering Team",
-    "department": "Engineering",
-    "active": true
+    "departmentName": "Engineering"
   }' | jq '.'
 
 curl -X POST "http://localhost:8000/api/v1/aspects/corpUserInfo" \
@@ -82,11 +82,11 @@ curl -X POST "http://localhost:8000/api/v1/aspects/corpUserInfo" \
   -d '{
     "entity_label": "CorpUser",
     "entity_urn": "urn:li:corpuser:crm_team",
+    "active": true,
     "displayName": "CRM Team",
     "email": "crm-team@company.com",
     "title": "CRM Operations Team",
-    "department": "Operations",
-    "active": true
+    "departmentName": "Operations"
   }' | jq '.'
 
 curl -X POST "http://localhost:8000/api/v1/aspects/corpUserInfo" \
@@ -94,15 +94,15 @@ curl -X POST "http://localhost:8000/api/v1/aspects/corpUserInfo" \
   -d '{
     "entity_label": "CorpUser",
     "entity_urn": "urn:li:corpuser:analytics_team",
+    "active": true,
     "displayName": "Analytics Team",
     "email": "analytics@company.com",
     "title": "Analytics Team",
-    "department": "Analytics",
-    "active": true
+    "departmentName": "Analytics"
   }' | jq '.'
 
 echo ""
-echo "4️⃣5️⃣ Adding ownership to CorpUsers:"
+echo "5️⃣ Adding ownership to CorpUsers:"
 echo "--------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
   -H "Content-Type: application/json" \
@@ -110,7 +110,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
     "entity_label": "CorpUser",
     "entity_urn": "urn:li:corpuser:data_engineering_team",
     "owners": [
-      {"owner": "data_engineering_team", "type": "SELF_OWNER"}
+      {"owner": "urn:li:corpuser:data_engineering_team", "type": "SELF_OWNER"}
     ],
     "lastModified": "2024-01-15T10:00:00Z"
   }' | jq '.'
@@ -121,7 +121,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
     "entity_label": "CorpUser",
     "entity_urn": "urn:li:corpuser:crm_team",
     "owners": [
-      {"owner": "crm_team", "type": "SELF_OWNER"}
+      {"owner": "urn:li:corpuser:crm_team", "type": "SELF_OWNER"}
     ],
     "lastModified": "2024-01-15T10:00:00Z"
   }' | jq '.'
@@ -132,7 +132,7 @@ curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
     "entity_label": "CorpUser",
     "entity_urn": "urn:li:corpuser:analytics_team",
     "owners": [
-      {"owner": "analytics_team", "type": "SELF_OWNER"}
+      {"owner": "urn:li:corpuser:analytics_team", "type": "SELF_OWNER"}
     ],
     "lastModified": "2024-01-15T10:00:00Z"
   }' | jq '.'
@@ -169,7 +169,6 @@ curl -X POST "http://localhost:8000/api/v1/aspects/corpGroupInfo" \
     "displayName": "Data Engineering Team",
     "description": "Team responsible for data infrastructure and ETL pipelines",
     "email": "data-engineering@company.com",
-    "slack": "#data-engineering",
     "members": ["data_engineering_team"]
   }' | jq '.'
 
@@ -181,7 +180,6 @@ curl -X POST "http://localhost:8000/api/v1/aspects/corpGroupInfo" \
     "displayName": "CRM Operations Team",
     "description": "Team managing customer relationship data and operations",
     "email": "crm-ops@company.com",
-    "slack": "#crm-operations",
     "members": ["crm_team"]
   }' | jq '.'
 
@@ -193,7 +191,6 @@ curl -X POST "http://localhost:8000/api/v1/aspects/corpGroupInfo" \
     "displayName": "Analytics Team",
     "description": "Team responsible for data analysis and business intelligence",
     "email": "analytics@company.com",
-    "slack": "#analytics",
     "members": ["analytics_team"]
   }' | jq '.'
 
@@ -203,25 +200,29 @@ echo "------------------------"
 curl -X POST "http://localhost:8000/api/v1/entities/Tag" \
   -H "Content-Type: application/json" \
   -d '{
-    "key": "PII"
+    "key": "PII",
+    "value": ""
   }' | jq '.'
 
 curl -X POST "http://localhost:8000/api/v1/entities/Tag" \
   -H "Content-Type: application/json" \
   -d '{
-    "key": "RAW_DATA"
+    "key": "RAW_DATA",
+    "value": ""
   }' | jq '.'
 
 curl -X POST "http://localhost:8000/api/v1/entities/Tag" \
   -H "Content-Type: application/json" \
   -d '{
-    "key": "ANONYMIZED"
+    "key": "ANONYMIZED",
+    "value": ""
   }' | jq '.'
 
 curl -X POST "http://localhost:8000/api/v1/entities/Tag" \
   -H "Content-Type: application/json" \
   -d '{
-    "key": "PROCESSED_DATA"
+    "key": "PROCESSED_DATA",
+    "value": ""
   }' | jq '.'
 
 echo ""
@@ -323,12 +324,12 @@ curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
     "entity_label": "Dataset",
     "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)",
     "owners": [
-      {"owner": "data_engineering_team", "type": "TECHNICAL_OWNER"},
-      {"owner": "crm_team", "type": "BUSINESS_OWNER"}
+      {"owner": "urn:li:corpuser:data_engineering_team", "type": "TECHNICAL_OWNER"},
+      {"owner": "urn:li:corpuser:crm_team", "type": "BUSINESS_OWNER"}
     ],
     "groupOwners": [
-      {"group": "data_engineering", "type": "TECHNICAL_GROUP"},
-      {"group": "crm_operations", "type": "BUSINESS_GROUP"}
+      {"group": "urn:li:corpGroup:data_engineering", "type": "TECHNICAL_GROUP"},
+      {"group": "urn:li:corpGroup:crm_operations", "type": "BUSINESS_GROUP"}
     ],
     "lastModified": "2024-01-15T10:00:00Z"
   }' | jq '.'
@@ -342,12 +343,12 @@ curl -X POST "http://localhost:8000/api/v1/aspects/ownership" \
     "entity_label": "Dataset",
     "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)",
     "owners": [
-      {"owner": "data_engineering_team", "type": "TECHNICAL_OWNER"},
-      {"owner": "analytics_team", "type": "BUSINESS_OWNER"}
+      {"owner": "urn:li:corpuser:data_engineering_team", "type": "TECHNICAL_OWNER"},
+      {"owner": "urn:li:corpuser:analytics_team", "type": "BUSINESS_OWNER"}
     ],
     "groupOwners": [
-      {"group": "data_engineering", "type": "TECHNICAL_GROUP"},
-      {"group": "analytics", "type": "BUSINESS_GROUP"}
+      {"group": "urn:li:corpGroup:data_engineering", "type": "TECHNICAL_GROUP"},
+      {"group": "urn:li:corpGroup:analytics", "type": "BUSINESS_GROUP"}
     ],
     "lastModified": "2024-01-15T10:00:00Z"
   }' | jq '.'
@@ -361,8 +362,8 @@ curl -X POST "http://localhost:8000/api/v1/aspects/globalTags" \
     "entity_label": "Dataset",
     "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)",
     "tags": [
-      {"tag": "PII", "context": "data_classification"},
-      {"tag": "RAW_DATA", "context": "data_layer"}
+      {"tag": "urn:li:tag:PII", "context": "data_classification"},
+      {"tag": "urn:li:tag:RAW_DATA", "context": "data_layer"}
     ]
   }' | jq '.'
 
@@ -375,8 +376,8 @@ curl -X POST "http://localhost:8000/api/v1/aspects/globalTags" \
     "entity_label": "Dataset",
     "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)",
     "tags": [
-      {"tag": "ANONYMIZED", "context": "data_classification"},
-      {"tag": "PROCESSED_DATA", "context": "data_layer"}
+      {"tag": "urn:li:tag:ANONYMIZED", "context": "data_classification"},
+      {"tag": "urn:li:tag:PROCESSED_DATA", "context": "data_layer"}
     ]
   }' | jq '.'
 
@@ -488,36 +489,6 @@ curl -X POST "http://localhost:8000/api/v1/aspects/dataQuality" \
     ]
   }' | jq '.'
 
-# echo ""
-# echo "1️⃣1️⃣ Adding datasetProfile to Raw Dataset:"
-# echo "-----------------------------------------"
-# curl -X POST "http://localhost:8000/api/v1/aspects/datasetProfile" \
-#   -H "Content-Type: application/json" \
-#   -d '{
-#     "entity_label": "Dataset",
-#     "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)",
-#     "rowCount": 100000,
-#     "columnCount": 1,
-#     "sizeInBytes": 5000000,
-#     "lastModified": "2024-01-15T10:00:00Z",
-#     "partitionCount": 1
-#   }' | jq '.'
-
-# echo ""
-# echo "1️⃣2️⃣ Adding datasetProfile to Processed Dataset:"
-# echo "-----------------------------------------------"
-# curl -X POST "http://localhost:8000/api/v1/aspects/datasetProfile" \
-#   -H "Content-Type: application/json" \
-#   -d '{
-#     "entity_label": "Dataset",
-#     "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)",
-#     "rowCount": 100000,
-#     "columnCount": 1,
-#     "sizeInBytes": 3000000,
-#     "lastModified": "2024-01-15T10:00:00Z",
-#     "partitionCount": 1
-#   }' | jq '.'
-
 echo ""
 echo "2️⃣1️⃣ Adding columnProperties to Raw Column:"
 echo "-------------------------------------------"
@@ -562,20 +533,20 @@ curl -X POST "http://localhost:8000/api/v1/aspects/columnTransformation" \
   -d '{
     "entity_label": "Column",
     "entity_urn": "urn:li:column:(urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD),customer_id)",
-    "inputColumns": ["customer_email"],
+    "inputColumns": ["urn:li:column:(urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD),customer_email)"],
     "transformType": "hash_transformation",
     "transformScript": "SHA256(customer_email)",
     "sourceDataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)"
   }' | jq '.'
 
 echo ""
-echo "2️⃣4️⃣ Adding datasetTransformation to Raw Dataset:"
+echo "2️⃣4️⃣ Adding datasetTransformation to Processed Dataset:"
 echo "------------------------------------------------"
 curl -X POST "http://localhost:8000/api/v1/aspects/datasetTransformation" \
   -H "Content-Type: application/json" \
   -d '{
     "entity_label": "Dataset",
-    "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)",
+    "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)",
     "sourceDataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_raw_data,PROD)",
     "targetDataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,customer_processed_data,PROD)",
     "transformationType": "data_cleaning_and_hashing",
@@ -612,8 +583,8 @@ curl -X POST "http://localhost:8000/api/v1/aspects/dpOwnership" \
     "entity_label": "DataProduct",
     "entity_urn": "urn:li:dataProduct:(customer_analytics,customer_analytics_product,PROD)",
     "owners": [
-      {"owner": "analytics_team", "type": "PRODUCT_OWNER"},
-      {"owner": "data_engineering_team", "type": "TECHNICAL_OWNER"}
+      {"owner": "urn:li:corpuser:analytics_team", "type": "PRODUCT_OWNER"},
+      {"owner": "urn:li:corpuser:data_engineering_team", "type": "TECHNICAL_OWNER"}
     ],
     "lastModified": "2024-01-15T10:00:00Z"
   }' | jq '.'

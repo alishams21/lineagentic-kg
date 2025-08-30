@@ -6,34 +6,70 @@ urn_patterns:
   dataPlatform:
     template: "{prefix}:dataPlatform:{platform}"
     parameters: ["platform"]
+    resolution_strategy: "template"
   
   dataset:
     template: "{prefix}:dataset:(urn:li:dataPlatform:{platform},{name},{env})"
     parameters: ["platform", "name", "env"]
     defaults: {"env": "PROD"}
+    resolution_strategy: "template"
+    # Add parsing rules for dataset URNs
+    parsing_rules:
+      regex: "urn:li:dataset:\\(urn:li:dataPlatform:([^,]+),([^,]+),([^)]+)\\)"
+      parameter_mapping:
+        - parameter: "platform"
+          group: 1
+        - parameter: "name"
+          group: 2
+        - parameter: "env"
+          group: 3
   
   dataProduct:
     template: "{prefix}:dataProduct:({domain},{name},{env})"
     parameters: ["domain", "name", "env"]
     defaults: {"env": "PROD"}
+    resolution_strategy: "template"
+    parsing_rules:
+      regex: "urn:li:dataProduct:\\(([^,]+),([^,]+),([^)]+)\\)"
+      parameter_mapping:
+        - parameter: "domain"
+          group: 1
+        - parameter: "name"
+          group: 2
+        - parameter: "env"
+          group: 3
   
   dataFlow:
     template: "{prefix}:dataFlow:({platform},{flow_id},{env})"
     parameters: ["platform", "flow_id", "env"]
     defaults: {"env": "PROD"}
+    resolution_strategy: "template"
   
   dataJob:
     template: "{prefix}:dataJob:({flow_urn},{job_name})"
     parameters: ["flow_urn", "job_name"]
+    resolution_strategy: "template"
   
   corpUser:
     template: "{prefix}:corpuser:{username}"
     parameters: ["username"]
     transformations: {"username": "email_to_username"}
+    resolution_strategy: "template"
+    parsing_rules:
+      regex: "urn:li:corpuser:([^,]+)"
+      parameter_mapping:
+        - parameter: "username"
+          group: 1
   
   corpGroup:
     template: "{prefix}:corpGroup:{name}"
     parameters: ["name"]
+    resolution_strategy: "template"
+    parsing_rules:
+      regex: "urn:li:corpGroup:([^,]+)"
+      parameter_mapping:
+        - parameter: "name"
+          group: 1
   
   tag:
     template: "{prefix}:tag:{key}{value_suffix}"
@@ -43,7 +79,54 @@ urn_patterns:
       value_suffix:
         when_value_present: "={value}"
         when_value_absent: ""
+    resolution_strategy: "template"
+    parsing_rules:
+      regex: "urn:li:tag:([^=]+)(?:=(.+))?"
+      parameter_mapping:
+        - parameter: "key"
+          group: 1
+        - parameter: "value"
+          group: 2
   
   column:
-    template: "{prefix}:column:({dataset_urn},{field_path})"  # Fixed template format
+    template: "{prefix}:column:({dataset_urn},{field_path})"
     parameters: ["dataset_urn", "field_path"]
+    resolution_strategy: "direct"
+    # Enhanced parsing rules for column URNs
+    parsing_rules:
+      regex: "urn:li:column:\\(([^,]+),([^)]+)\\)"
+      parameter_mapping:
+        - parameter: "dataset_urn"
+          group: 1
+        - parameter: "field_path"
+          group: 2
+    # Direct URN construction strategy
+    direct_construction:
+      pattern: "urn:li:column:({parent_urn},{field_value})"
+      parent_urn_source: "entity_urn"
+      field_value_source: "field_value"
+
+# Field mapping strategies for generic URN resolution
+field_mapping_strategies:
+  username_to_urn:
+    source_field_type: "username"
+    target_field_type: "urn"
+    mapping_function: "email_to_username"
+    urn_generator: "corpUser"
+  
+  name_to_urn:
+    source_field_type: "name"
+    target_field_type: "urn"
+    urn_generator: "corpGroup"
+  
+  composite_urn:
+    source_field_type: "composite"
+    target_field_type: "urn"
+    parsing_rules:
+      - pattern: "urn:li:column:\\(([^,]+),([^)]+)\\)"
+        parameters: ["dataset_urn", "field_path"]
+  
+  direct_urn:
+    source_field_type: "direct"
+    target_field_type: "urn"
+    strategy: "pass_through"

@@ -118,6 +118,12 @@ aspect_relationships:
           source_urn_field: "username"
           target_entity_type: "CorpGroup"
           target_urn_field: "name"
+          # Use template-based URN resolution for CorpUser and CorpGroup
+          use_direct_urns: false
+          # Add relationship properties
+          relationship_properties:
+            added_via: "corpGroupInfo"
+            added_timestamp: "lastModified"
 
   dpContract:
     description: "Creates IMPLEMENTS_CONTRACT relationships from dpContract aspect data"
@@ -134,6 +140,26 @@ aspect_relationships:
           target_entity_type: "DataProduct"
           target_urn_field: "urn"
           use_direct_urns: true
+
+  # Entity Creation Relationships - These are triggered when entities are created
+  ColumnCreation:
+    description: "Creates HAS_COLUMN relationships when Column entities are created"
+    rules:
+      - entity_type: "Column"
+        relationship_type: "HAS_COLUMN"
+        source_entity: "Dataset"
+        target_entity: "Column"
+        direction: "incoming"
+        field_mapping:
+          source_field: "dataset_urn"
+          source_entity_type: "Dataset"
+          source_urn_field: "urn"
+          target_entity_type: "Column"
+          target_urn_field: "urn"
+          use_direct_urns: true
+          # Add relationship properties
+          relationship_properties:
+            field_path: "field_path"
 
 
   
