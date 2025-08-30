@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lineagentic-kg"
-version = "1.5.0"
+version = "1.6.0"
 description = "Turn YAML into a Knowledge Graph in minutes"
 readme = "README.md"
 license = "Apache-2.0"
