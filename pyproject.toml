@@ -44,8 +44,8 @@ dev = [
 ]
 
 [project.scripts]
-generate-api = "src.scripts.generate_api:main"
-generate-cli = "src.scripts.generate_cli:main"
+generate-api = "yaml2graph.scripts.generate_api:main"
+generate-cli = "yaml2graph.scripts.generate_cli:main"
 
 [project.urls]
 Repository = "https://github.com/alishams21/yaml2graph"

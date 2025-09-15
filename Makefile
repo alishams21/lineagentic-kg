@@ -51,7 +51,7 @@ start-databases:
 	@echo "  - Neo4j Database: localhost:7474 (HTTP) / localhost:7687 (Bolt)"
 	@echo ""
 	@echo "⏳ Waiting for Neo4j to be ready..."
-	@until docker exec neo4j-yaml2graph cypher-shell -u neo4j -p password "RETURN 1" > /dev/null 2>&1; do \
+	@until docker exec neo4j-graph cypher-shell -u neo4j -p password "RETURN 1" > /dev/null 2>&1; do \
 		echo "   Waiting for Neo4j to be ready..."; \
 		sleep 3; \
 	done
@@ -158,11 +158,10 @@ generate-and-run-api:
 	@echo "✅ Dependencies synced!"
 	@echo ""
 	@echo "2️⃣ Activating virtual environment..."
-	@source .venv/bin/activate || echo "⚠️  Virtual environment activation failed, continuing..."
 	@echo "✅ Environment activated!"
 	@echo ""
 	@echo "3️⃣ Generating API from registry..."
-	@generate-api
+	@uv run python -m yaml2graph.scripts.generate_api
 	@echo "✅ API generated!"
 	@echo ""
 	@echo "4️⃣ Installing API dependencies..."

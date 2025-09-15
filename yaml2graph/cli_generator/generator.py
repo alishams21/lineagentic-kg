@@ -9,8 +9,8 @@ import inspect
 from typing import Any, Dict, List, Set, Optional
 from pathlib import Path
 
-from lineagentic_kg.utils.logging_config import get_logger, log_function_call, log_function_result, log_error_with_context
-from lineagentic_kg.registry.factory import RegistryFactory
+from yaml2graph.utils.logging_config import get_logger, log_function_call, log_function_result, log_error_with_context
+from yaml2graph.registry.factory import RegistryFactory
 
 
 class CLIGenerator:
@@ -107,7 +107,7 @@ from typing import Optional
 # Add parent directory to path to import registry modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from lineagentic_kg.registry.factory import RegistryFactory
+from yaml2graph.registry.factory import RegistryFactory
 
 
 class FactoryWrapper:

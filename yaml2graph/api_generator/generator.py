@@ -9,8 +9,8 @@ import inspect
 from typing import Any, Dict, List, Set
 from pathlib import Path
 
-from lineagentic_kg.utils.logging_config import get_logger, log_function_call, log_function_result, log_error_with_context
-from lineagentic_kg.registry.factory import RegistryFactory
+from yaml2graph.utils.logging_config import get_logger, log_function_call, log_function_result, log_error_with_context
+from yaml2graph.registry.factory import RegistryFactory
 
 
 class APIGenerator:
@@ -680,11 +680,11 @@ from typing import Optional
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 try:
-    from lineagentic_kg.registry.factory import RegistryFactory
+    from yaml2graph.registry.factory import RegistryFactory
 except ImportError:
     # Fallback for when running as standalone
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-    from lineagentic_kg.registry.factory import RegistryFactory
+    from yaml2graph.registry.factory import RegistryFactory
 
 
 class FactoryWrapper:
@@ -936,7 +936,7 @@ python main.py
             # Try different possible locations for the config directory
             possible_paths = [
                 registry_path.parent,  # Same directory as registry file
-                Path("lineagentic_kg/config"),  # Relative to current working directory
+                Path("yaml2graph/config"),  # Relative to current working directory
                 Path(__file__).parent.parent / "config",  # Relative to this file
             ]
             
@@ -947,8 +947,8 @@ python main.py
             
             if not source_config_dir:
                 # If we can't find the config directory, try to copy from the package
-                import lineagentic_kg
-                package_dir = Path(lineagentic_kg.__file__).parent
+                import yaml2graph
+                package_dir = Path(yaml2graph.__file__).parent
                 source_config_dir = package_dir / "config"
             
             if not source_config_dir.exists():

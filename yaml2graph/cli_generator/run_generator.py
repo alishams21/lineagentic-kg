@@ -10,7 +10,7 @@ from pathlib import Path
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from lineagentic_kg.cli_generator.generator import CLIGenerator
+from yaml2graph.cli_generator.generator import CLIGenerator
 
 
 def main():

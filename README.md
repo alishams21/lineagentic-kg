@@ -13,51 +13,6 @@ With automatic REST API and CLI tooling generation, yaml2graph delivers a “bat
 
 ## Quick Start
 
-```
-1. pip install yaml2graph
-```
-```python
-from yaml2graph.registry.factory import RegistryFactory
-
-# Initialize the registry factory with your config file
-registry_factory = RegistryFactory("yaml2graph/config/main_registry.yaml")
-
-# Create a Neo4j writer instance
-neo4j_writer = registry_factory.create_writer(
-    uri="bolt://localhost:7687",
-    user="neo4j",
-    password="password"
-)
-
-
-# Create a dataset
-dataset_urn = neo4j_writer.upsert_dataset(
-    platform="snowflake",
-    name="customer_data",
-    env="PROD"
-)
-
-# Create a corp user
-user_urn = neo4j_writer.upsert_corpuser(
-    username="john.doe"
-)
-
-# Create a tag
-tag_urn = neo4j_writer.upsert_tag(
-    key="sensitive",
-    value="true"
-)
-
-# Retrieve entities
-dataset = neo4j_writer.get_dataset(dataset_urn)
-print(f"Retrieved dataset: {dataset}")
-
-user = neo4j_writer.get_corpuser(user_urn)
-print(f"Retrieved user: {user}")
-
-# Clean up
-neo4j_writer.close()
-```
 
 ## Restful API Generator:
 
