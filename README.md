@@ -1,7 +1,3 @@
-<div align="center">
-  <img src="https://raw.githubusercontent.com/lineagentic/yaml2graph/main/images/lineagentickg.jpg" alt="Lineagentic Logo" width="880" height="500">
-</div>
-
 # yaml2graph
 
 yaml2graph is a knowledge graph builder library that converts YAML definitions into a fully operational and customizable knowledge graph. While one key use case is building a data catalog, the framework is generic and extensible—making it easy to define entities, aspects, and relationships for any domain.
