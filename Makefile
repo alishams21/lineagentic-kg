@@ -1,10 +1,10 @@
-# LineAgent Project Makefile
+# YAML2GRAPH Project Makefile
 # Centralized build and development commands
 
 .PHONY: help start-databases stop-databases stop-databases-and-clean-data clean-all-stack generate-mermaid-diagram generate-and-run-api generate-cli run-cli test test-registry test-api test-cli test-coverage
 
 help:
-	@echo "🚀 Lineagentic Project"
+	@echo "🚀 yaml2graph Project"
 	@echo ""
 	@echo "🚀 Available commands:"
 	@echo "  - start-databases: Start databases"
@@ -51,7 +51,7 @@ start-databases:
 	@echo "  - Neo4j Database: localhost:7474 (HTTP) / localhost:7687 (Bolt)"
 	@echo ""
 	@echo "⏳ Waiting for Neo4j to be ready..."
-	@until docker exec neo4j-lineage cypher-shell -u neo4j -p password "RETURN 1" > /dev/null 2>&1; do \
+	@until docker exec neo4j-yaml2graph cypher-shell -u neo4j -p password "RETURN 1" > /dev/null 2>&1; do \
 		echo "   Waiting for Neo4j to be ready..."; \
 		sleep 3; \
 	done
@@ -102,9 +102,8 @@ clean-all:
 	@find . -name "generated-*.json" -type f -delete
 	@echo "🗑️  Removing data folders..."
 	@rm -rf agents_log 2>/dev/null || echo "No agents_log folder found"
-	@rm -rf lineage_extraction_dumps 2>/dev/null || echo "No lineage_extraction_dumps folder found"
 	@rm -rf .venv 2>/dev/null || echo "No .venv folder found"
-	@rm -rf lineagentic-kg.egg-info 2>/dev/null || echo "No lineagentic-kg.egg-info folder found"
+	@rm -rf yaml2graph.egg-info 2>/dev/null || echo "No yaml2graph.egg-info folder found"
 	@rm -rf .pytest_cache 2>/dev/null || echo "No .pytest_cache folder found"
 	@rm -rf .mypy_cache 2>/dev/null || echo "No .mypy_cache folder found"
 	@rm -rf generated_api 2>/dev/null || echo "No generated_api folder found"
@@ -112,7 +111,7 @@ clean-all:
 	@rm -rf logs 2>/dev/null || echo "No logs folder found"
 	@rm -rf generated_cli 2>/dev/null || echo "No generated_cli folder found"
 	@rm -rf dist 2>/dev/null || echo "No dist folder found"
-	@rm -rf lineagentic_kg.egg-info 2>/dev/null || echo "No lineagentic_kg.egg-info folder found"
+	@rm -rf yaml2graph.egg-info 2>/dev/null || echo "No yaml2graph.egg-info folder found"
 	@rm -rf .pytest_cache 2>/dev/null || echo "No .pytest_cache folder found"
 	@$(MAKE) clean-pycache
 	@echo "✅ Cleanup completed!"
@@ -198,13 +197,13 @@ generate-cli:
 	@echo "✅ CLI dependencies installed!"
 	@echo ""
 	@echo "5️⃣ Starting CLI..."
-	@cd generated_cli && python lineagentic_cli.py --help
+	@cd generated_cli && python yaml2graph_cli.py --help
 	@echo "✅ CLI is ready! Use 'make cli <command>' to run commands"
 
 # Run CLI command with proper environment
 run-cli:
 	@echo "🚀 Running CLI command..."
-	@cd generated_cli && python lineagentic_cli.py $(ARGS)
+	@cd generated_cli && python yaml2graph_cli.py $(ARGS)
 
 
 
@@ -239,7 +238,7 @@ build-package:
 	@echo "Package built successfully!"
 	@echo "Package files created in dist/ directory"
 	@echo "Next steps:"
-	@echo "  - Test locally: pip install dist/lineagentic_kg-0.1.0.tar.gz"
+	@echo "  - Test locally: pip install dist/yaml2graph-0.1.0.tar.gz"
 	@echo "  - Publish to TestPyPI: make publish-testpypi"
 	@echo "  - Publish to PyPI: make publish-pypi"
 
@@ -255,8 +254,8 @@ publish-testpypi:
 	@echo " Uploading to TestPyPI..."
 	@python -m twine upload --repository testpypi dist/*
 	@echo "Package published to TestPyPI!"
-	@echo "View at: https://test.pypi.org/project/lineagentic-kg/"
-	@echo "Test install: pip install --index-url https://test.pypi.org/simple/ lineagentic-kg"
+	@echo "View at: https://test.pypi.org/project/yaml2graph/"
+	@echo "Test install: pip install --index-url https://test.pypi.org/simple/ yaml2graph"
 
 # Publish to PyPI (production)
 publish-pypi:
@@ -273,8 +272,8 @@ publish-pypi:
 	@echo " Uploading to PyPI..."
 	@python -m twine upload dist/*
 	@echo "Package published to PyPI!"
-	@echo "View at: https://pypi.org/project/lineagentic-kg/"
-	@echo "Install with: pip install lineagentic-kg"
+	@echo "View at: https://pypi.org/project/yaml2graph/"
+	@echo "Install with: pip install yaml2graph"
 
 # =============================================================================
 # TESTING COMMANDS ###########################################################

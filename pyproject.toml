@@ -3,18 +3,12 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lineagentic-kg"
+name = "yaml2graph"
 version = "1.6.0"
 description = "Turn YAML into a Knowledge Graph in minutes"
 readme = "README.md"
 license = "Apache-2.0"
-authors = [
-    {name = "LineAgentic Team", email = "team@lineagentic.com"}
-]
-maintainers = [
-    {name = "LineAgentic Team", email = "team@lineagentic.com"}
-]
-keywords = ["neo4j", "metadata", "registry", "lineage", "catalog"]
+keywords = ["neo4j", "metadata", "registry", "lineage", "catalog", "yaml", "graph"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -50,21 +44,20 @@ dev = [
 ]
 
 [project.scripts]
-generate-api = "lineagentic_kg.scripts.generate_api:main"
-generate-cli = "lineagentic_kg.scripts.generate_cli:main"
+generate-api = "src.scripts.generate_api:main"
+generate-cli = "src.scripts.generate_cli:main"
 
 [project.urls]
-Homepage = "https://lineagentic.com"
-Repository = "https://github.com/lineagentic/lineagentic-kg"
-Documentation = "https://github.com/lineagentic/lineagentic-kg#readme"
-Issues = "https://github.com/lineagentic/lineagentic-kg/issues"
+Repository = "https://github.com/alishams21/yaml2graph"
+Documentation = "https://github.com/alishams2/yaml2graph#readme"
+Issues = "https://github.com/alishams2/yaml2graph/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["lineagentic_kg*"]
+include = ["src*"]
 
 [tool.setuptools.package-data]
-"lineagentic_kg" = ["config/*.yaml"]
+"src" = ["config/*.yaml"]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["*.pyc", "*.pyo", "*.pyd", "__pycache__", "*.so"]
